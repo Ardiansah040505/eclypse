@@ -1,28 +1,26 @@
-# nixpacks.toml - Railway deployment config for Laravel + PHP 8.4
+# nixpacks.toml - Railway deployment config for Laravel
 
 [variables]
-# Force PHP 8.4 across ALL phases (setup, install, build, start)
-PHP_VERSION = "8.4"
+PHP_VERSION = "8.3"
 PORT = "8000"
 
 [phases.setup]
-# Install PHP 8.4 with all extensions required by Laravel
 nixPkgs = [
-    "php84",
-    "php84Extensions.pdo",
-    "php84Extensions.pdo_mysql",
-    "php84Extensions.mbstring",
-    "php84Extensions.xml",
-    "php84Extensions.curl",
-    "php84Extensions.zip",
-    "php84Extensions.bcmath",
-    "php84Extensions.tokenizer",
-    "php84Extensions.ctype",
-    "php84Extensions.fileinfo",
-    "php84Extensions.openssl",
-    "php84Extensions.gd",
-    "php84Extensions.intl",
-    "php84Packages.composer"
+    "php83",
+    "php83Extensions.pdo",
+    "php83Extensions.pdo_mysql",
+    "php83Extensions.mbstring",
+    "php83Extensions.xml",
+    "php83Extensions.curl",
+    "php83Extensions.zip",
+    "php83Extensions.bcmath",
+    "php83Extensions.tokenizer",
+    "php83Extensions.ctype",
+    "php83Extensions.fileinfo",
+    "php83Extensions.openssl",
+    "php83Extensions.gd",
+    "php83Extensions.intl",
+    "php83Packages.composer"
 ]
 
 [phases.install]
