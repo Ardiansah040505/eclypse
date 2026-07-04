@@ -1,0 +1,360 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   TAHAP 2 - Video & Eco Cards Styles
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.video-section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+.video-embed-wrap {
+  background: var(--dark);
+  border-radius: var(--radius-sm);
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+.video-embed-wrap iframe {
+  width: 100%; height: 100%;
+  border: none;
+  border-radius: var(--radius-sm);
+  position: absolute; inset: 0;
+}
+.video-placeholder-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.play-circle {
+  width: 64px; height: 64px;
+  background: var(--yellow);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  transition: transform 0.2s;
+}
+.play-circle:hover { transform: scale(1.1); }
+
+/* ── ECO PACKS ── */
+.eco-section { margin-top: 1.5rem; }
+.eco-packs { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1.5rem; margin-top:1rem; }
+.eco-pack {
+  border:0;
+  border-radius:var(--radius);
+  padding:1.5rem;
+  text-align:left;
+  cursor:pointer;
+  font-family:inherit;
+  background:var(--card-bg);
+  box-shadow:var(--shadow);
+  transition:.25s;
+  color:var(--dark);
+  min-height: 280px;
+}
+.eco-pack:hover {
+  transform:translateY(-5px);
+  box-shadow:0 13px 30px rgba(29,67,50,.2);
+}
+.pack-stack { height:120px; position:relative; margin-bottom:1.25rem; }
+.pack-sheet {
+  position:absolute;
+  width:80px;
+  height:108px;
+  left:50%;
+  top:3px;
+  transform:translateX(-50%);
+  border-radius:10px;
+  border:2px solid rgba(255,255,255,.72);
+  box-shadow:0 5px 12px rgba(0,0,0,.17);
+  display:grid;
+  place-items:center;
+  font-size:2.1rem;
+  color:white;
+  font-weight:900;
+}
+.pack-sheet:nth-child(1) { transform:translateX(-50%) translateX(-25px) rotate(-9deg); opacity:.7; }
+.pack-sheet:nth-child(2) { transform:translateX(-50%) translateX(25px) rotate(9deg); opacity:.7; }
+.pack-sheet:nth-child(3) { transform:translateX(-50%); }
+.eco-pack.atmo .pack-sheet { background:linear-gradient(135deg,#65c9ff,#3980c9); }
+.eco-pack.bio .pack-sheet { background:linear-gradient(135deg,#83d99f,#2d6a4f); }
+.eco-pack.hydro .pack-sheet { background:linear-gradient(135deg,#57d7db,#1689b8); }
+.pack-name { font-family:'Nunito',sans-serif; font-size:1.1rem; font-weight:900; }
+.pack-info { font-size:.78rem; color:var(--gray); margin-top:4px; }
+.pack-open {
+  margin-top:.85rem;
+  display:inline-block;
+  font-size:.78rem;
+  color:var(--green-mid);
+  font-weight:800;
+}
+.eco-pack-view-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Desktop responsive for eco packs */
+@media (min-width: 768px) {
+  .eco-packs {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+  .eco-pack {
+    padding: 1.5rem !important;
+  }
+  .eco-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* ── ECO CARDS GRID ── */
+.eco-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.eco-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  border: 2px solid var(--green-pale);
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.eco-card:hover {
+  border-color: var(--green-light);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(45,106,79,0.18);
+}
+.eco-card.selected {
+  border-color:var(--yellow);
+  box-shadow:0 0 0 3px rgba(244,196,48,.25), 0 10px 28px rgba(29,67,50,.18);
+}
+.eco-card-type {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.eco-card-type.atmo { color: #4DA6FF; }
+.eco-card-type.bio { color: var(--green-mid); }
+.eco-card-type.hydro { color: #00BCD4; }
+.eco-card-type.aktivis { color: #2e7d32; }
+.eco-card-type.pedagang { color: #b45309; }
+.eco-card-type.peneliti { color: #1a3a7a; }
+.eco-card-icon { font-size: 2rem; margin-bottom: 8px; display: block; }
+.eco-card-title {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--dark);
+  margin-bottom: 4px;
+}
+.eco-card-desc { font-size: 0.78rem; color: var(--gray); line-height: 1.4; }
+.eco-card-badge {
+  position: absolute;
+  top: 10px; right: 10px;
+  background: var(--yellow-light);
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--earth);
+}
+
+/* ── GACHA FLIP 3D ── */
+.gacha-flip-scene {
+  width: min(520px, 100%);
+  max-width: 520px;
+  perspective: 1000px;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  /* Prevent any hover-triggered flip */
+  transition: none;
+}
+.gacha-flip-scene:hover {
+  /* No flip on hover - only on click */
+}
+.gacha-flip-card {
+  width: 100%;
+  min-height: 360px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Only flip with JS click, not hover */
+}
+.gacha-below {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  margin-top: 2rem;
+  position: relative;
+  z-index: 2;
+}
+.gacha-flip-card.is-flipped { transform: rotateY(180deg); }
+.gacha-face {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  min-height: 500px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow-y: auto;
+  pointer-events: none;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+.gacha-face-back { transform: rotateY(180deg); }
+.gacha-flip-hint {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--gray);
+  font-weight: 600;
+  animation: pulse-hint 1.8s ease-in-out infinite;
+}
+@keyframes pulse-hint {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.gacha-flip-status {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gray);
+  min-height: 1.2rem;
+}
+
+/* ── GACHA STAGE ── */
+.gacha-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+.gacha-flip-status {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--green-deep);
+  min-height: 1.5rem;
+  text-align: center;
+}
+.gacha-dots-row { display: flex; gap: 8px; justify-content: center; }
+.gacha-dot-pill {
+  width: 32px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--green-pale);
+  transition: all 0.25s;
+}
+.gacha-dot-pill.active {
+  background: var(--yellow);
+  width: 40px;
+}
+.gacha-dot-pill.done { background: var(--green); }
+.gacha-counter-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gray);
+  letter-spacing: 0.08em;
+}
+.gacha-card-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.eco-card.gacha-card-full {
+  width: 100%;
+  max-width: 520px;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 2.5rem 2rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+.gacha-icon { font-size: 4.5rem !important; margin-bottom: 16px; }
+.gacha-title { font-size: 1.4rem !important; margin-bottom: 12px; }
+.gacha-desc {
+  font-size: 0.95rem !important;
+  line-height: 1.8;
+  max-width: 460px;
+  text-align: left;
+}
+.gacha-desc em {
+  color: var(--gray);
+  font-size: 0.78rem;
+  display: block;
+  margin-top: 0.5rem;
+}
+.gacha-nav-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.gacha-click-next-hint {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--gray);
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+/* ── ECO CARD REVEAL ANIMATION ── */
+@keyframes cardReveal {
+  0%   { opacity:0; transform:translateY(20px) scale(0.88) rotateY(25deg); }
+  60%  { transform:translateY(-4px) scale(1.03) rotateY(0deg); }
+  100% { opacity:1; transform:translateY(0) scale(1) rotateY(0deg); }
+}
+.card-reveal {
+  animation: cardReveal 0.55s cubic-bezier(.22,.68,0,1.4) both;
+  opacity:0;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .eco-packs { grid-template-columns:1fr; }
+}

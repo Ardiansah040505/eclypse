@@ -1,0 +1,155 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   TAHAP 5 - Reflection / Refleksi Styles
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.refleksi-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.25rem;
+}
+.refleksi-card h3 {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--dark);
+  margin-bottom: 0.75rem;
+}
+.refleksi-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--green-pale);
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  min-height: 120px;
+  resize: vertical;
+  color: var(--dark);
+  transition: border-color 0.2s;
+}
+.refleksi-textarea:focus { outline: none; border-color: var(--green-light); }
+
+/* ── COMMENT LIST ── */
+.comment-list { margin-top: 1.25rem; }
+.comment-item {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--green-pale);
+}
+.comment-item.unanswered {
+  background: rgba(251, 191, 36, 0.05);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border-bottom: none;
+}
+.comment-item.answered {
+  background: var(--card-bg);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border-bottom: none;
+}
+.comment-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green-mid), var(--green-light));
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.comment-body { flex: 1; }
+.comment-name { font-size: 0.82rem; font-weight: 700; color: var(--green-deep); }
+.comment-text { font-size: 0.85rem; color: var(--dark); line-height: 1.5; margin-top: 2px; }
+.comment-time { font-size: 0.7rem; color: var(--gray); margin-top: 2px; }
+.teacher-reply {
+  background: var(--yellow-light);
+  border-left: 3px solid var(--yellow);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 0.83rem;
+  color: var(--earth);
+}
+.teacher-reply strong { color: var(--dark); font-size: 0.75rem; }
+
+/* ── ADMIN REFLEKSI DASHBOARD ── */
+.admin-refleksi-dashboard {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+.refleksi-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.stat-card {
+  background: white;
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  text-align: center;
+  border: 2px solid var(--green-pale);
+}
+.stat-card.total { border-color: var(--green-mid); }
+.stat-card.unanswered {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+}
+.stat-card.answered {
+  border-color: var(--green);
+  background: rgba(34, 197, 94, 0.08);
+}
+.stat-number {
+  font-family: 'Nunito', sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--dark);
+}
+.stat-card.unanswered .stat-number { color: #d97706; }
+.stat-card.answered .stat-number { color: var(--green); }
+.stat-label {
+  font-size: 0.78rem;
+  color: var(--gray);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* ── FILTER TABS ── */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-tab {
+  padding: 8px 16px;
+  border: 2px solid var(--green-pale);
+  border-radius: 99px;
+  background: white;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gray);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-tab:hover {
+  border-color: var(--green-mid);
+  color: var(--dark);
+}
+.filter-tab.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .refleksi-stats { grid-template-columns: 1fr; }
+  .filter-tabs { flex-direction: column; }
+  .filter-tab { width: 100%; text-align: center; }
+}

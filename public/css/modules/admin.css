@@ -1,0 +1,102 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   ADMIN - Admin-specific styles
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.admin-bar {
+  background: rgba(244,196,48,0.1);
+  border: 1px dashed rgba(244,196,48,0.5);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.admin-bar-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--earth);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-bar-actions { display: flex; gap: 8px; }
+.badge-admin {
+  background: var(--yellow);
+  color: var(--dark);
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── THANK YOU PAGE ── */
+#page-thankyou {
+  background: linear-gradient(160deg, var(--green-deep) 0%, #0D3320 100%);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 100vh;
+  flex-direction: column;
+  gap: 0;
+}
+.thankyou-content {
+  color: white;
+  max-width: 560px;
+  padding: 2rem;
+}
+.thankyou-icon {
+  font-size: 5rem;
+  display: block;
+  animation: bounce 2s infinite;
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.thankyou-content h1 {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 2.5rem;
+  margin: 1rem 0 0.5rem;
+  letter-spacing: 1px;
+}
+.thankyou-content p { opacity: 0.85; line-height: 1.7; margin-bottom: 1.5rem; }
+.achievement-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+.chip {
+  background: rgba(244,196,48,0.15);
+  border: 1px solid rgba(244,196,48,0.3);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--yellow);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-home {
+  background: var(--yellow);
+  color: var(--dark);
+  border: none;
+  border-radius: var(--radius);
+  padding: 14px 36px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-home:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(244,196,48,0.4);
+}

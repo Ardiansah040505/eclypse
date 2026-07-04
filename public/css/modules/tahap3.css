@@ -1,0 +1,141 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   TAHAP 3 - Groups & Preparation Styles
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── PREPARATION ROOM ── */
+.prep-intro {
+  background: linear-gradient(135deg, #2D3A1B, #3D5A24);
+  border-radius: var(--radius);
+  padding: 2rem;
+  color: white;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.prep-intro::after {
+  content: '⚔️';
+  position: absolute;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 5rem;
+  opacity: 0.1;
+}
+.prep-intro h2 {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 1.6rem;
+  margin-bottom: 0.5rem;
+}
+.prep-rules {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  box-shadow: var(--shadow);
+}
+.prep-rules h3 {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--dark);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rule-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--green-pale);
+}
+.rule-item:last-child { border-bottom: none; }
+.rule-num {
+  width: 28px; height: 28px;
+  background: var(--green-mid);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.rule-text { font-size: 0.88rem; color: var(--dark); line-height: 1.5; }
+.rule-text strong { color: var(--green-deep); }
+
+/* ── GROUPS SECTION ── */
+.groups-section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  box-shadow: var(--shadow);
+  margin-top: 1.5rem;
+}
+.group-card {
+  background: linear-gradient(135deg, var(--green-pale), #fff);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--green-pale);
+}
+.group-name {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--green-deep);
+}
+.group-members { font-size: 0.8rem; color: var(--gray); }
+.group-badge {
+  background: var(--green-mid);
+  color: white;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ── ONLINE PANEL (ADMIN) ── */
+.online-panel {
+  margin: 1rem 0 1.25rem;
+  padding: 1rem;
+  background: #f3fbf6;
+  border: 1px dashed var(--green-light);
+  border-radius: var(--radius-sm);
+}
+.online-panel-title {
+  font-family:'Nunito',sans-serif;
+  font-weight:800;
+  color:var(--green-deep);
+  font-size:.95rem;
+  margin-bottom:.2rem;
+}
+.online-panel-note { color:var(--gray); font-size:.78rem; margin-bottom:.75rem; }
+.online-student {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:.65rem 0;
+  border-bottom:1px solid var(--green-pale);
+}
+.online-student:last-child { border-bottom:0; }
+.online-dot {
+  width:9px; height:9px;
+  border-radius:50%;
+  background:#36b56d;
+  box-shadow:0 0 0 3px rgba(54,181,109,.14);
+}
+.online-student-name { flex:1; font-size:.86rem; font-weight:600; }
+.group-select {
+  min-width:175px;
+  padding:7px 9px;
+  border:1px solid var(--green-pale);
+  border-radius:6px;
+  color:var(--green-deep);
+  font-family:inherit;
+  background:white;
+}

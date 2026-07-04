@@ -1,0 +1,118 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   ECLYPSE APP - Main CSS Entry Point
+   Modular CSS Architecture
+   ══════════════════════════════════════════════════════════════════════════
+
+   CSS Modules:
+   1. base.css      - Variables, reset, background
+   2. navbar.css    - Navigation bar
+   3. login.css     - Login page
+   4. homepage.css  - Hero, stage cards, progress
+   5. tahap1.css    - Climate news
+   6. tahap2.css    - Video & eco cards
+   7. tahap3.css    - Groups
+   8. tahap4.css    - Debate
+   9. tahap5.css    - Reflection
+   10. modal.css    - Modals & toast
+   11. admin.css     - Admin & thank you
+
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Import all CSS modules */
+@import url('modules/base.css');
+@import url('modules/navbar.css');
+@import url('modules/login.css');
+@import url('modules/homepage.css');
+@import url('modules/tahap1.css');
+@import url('modules/tahap2.css');
+@import url('modules/tahap3.css');
+@import url('modules/tahap4.css');
+@import url('modules/tahap5.css');
+@import url('modules/modal.css');
+@import url('modules/admin.css');
+
+/* ── PAGE HEADERS ── */
+.page-header h2, .section-title { text-shadow: 0 1px 2px rgba(255,255,255,0.8); }
+
+/* ── HERO BANNER UPGRADE ── */
+.hero-banner {
+  background: linear-gradient(135deg, #0d3320 0%, #1B4332 40%, #2D6A4F 100%) !important;
+  box-shadow: 0 12px 40px rgba(13,51,32,0.35) !important;
+  overflow: hidden;
+  position: relative;
+}
+.hero-banner::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 80% at 85% 50%, rgba(82,183,136,0.18) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero-banner > * { position: relative; z-index: 1; }
+
+/* ── WELCOME MSG ── */
+.welcome-msg {
+  background: rgba(255,243,176,0.75) !important;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(244,196,48,0.35) !important;
+  border-left: 4px solid var(--yellow) !important;
+}
+
+/* ── PROGRESS BAR SISWA ── */
+.progress-wrap {
+  margin-top: 1.25rem;
+  background: rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  backdrop-filter: blur(4px);
+}
+.progress-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: white;
+}
+.progress-bar-track {
+  width: 100%;
+  height: 12px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--yellow), #ffe27a);
+  border-radius: 99px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.navbar-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 99px;
+}
+.navbar-progress-track {
+  width: 70px;
+  height: 6px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.navbar-progress-fill {
+  height: 100%;
+  background: var(--yellow);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+.navbar-progress-text {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--yellow);
+  white-space: nowrap;
+}

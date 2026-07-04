@@ -1,0 +1,222 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   TAHAP 4 - Debate / Argument Session Styles
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── DEBATE BOARD ── */
+.debate-board {
+  background: linear-gradient(180deg, var(--green-deep) 0%, var(--dark) 100%);
+  border-radius: var(--radius);
+  padding: 2rem;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+.debate-topic {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 1.3rem;
+  text-align: center;
+  background: rgba(244,196,48,0.15);
+  border: 1px solid rgba(244,196,48,0.3);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  color: var(--yellow);
+}
+.debate-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.debate-side {
+  background: rgba(255,255,255,0.08);
+  border-radius: var(--radius-sm);
+  padding: 1.25rem;
+}
+.debate-side h4 {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+}
+.side-pro h4 { color: #74E0A0; }
+.side-con h4 { color: #FF8A80; }
+.speaker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.06);
+}
+.speaker-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--green-mid);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+.speaker-name { font-size: 0.83rem; font-weight: 600; }
+
+/* ── TEAM BUTTONS (KANCING) ── */
+.team-buttons { display:flex; flex-wrap:wrap; gap:12px; padding: 4px 0 8px; }
+.kancing {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: 3px solid #0f5f9b;
+  background: radial-gradient(circle at 32% 28%, #67c8ff, #1976c5 60%, #0c4f8b);
+  box-shadow: inset -3px -4px 5px rgba(0,0,0,.18), 0 3px 0 rgba(0,0,0,.18);
+  position:relative; display:inline-block;
+}
+.kancing::after {
+  content:'';
+  position:absolute;
+  width:13px; height:13px;
+  left:11px; top:11px;
+  background: radial-gradient(circle, #092d57 0 2px, transparent 2.7px) 0 0/7px 7px;
+}
+.kancing-label { font-size:.78rem; opacity:.78; margin-bottom:.6rem; }
+.admin-kancing { border:0; padding:0; cursor:pointer; background:transparent; }
+.admin-kancing:hover .kancing { transform:translateY(-2px); }
+
+/* ── ARGUMENT LOG ── */
+.argument-log {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+.arg-entry {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--green-pale);
+}
+.arg-entry:last-child { border-bottom: none; }
+.arg-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--green-mid);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700;
+  flex-shrink: 0; font-size: 0.85rem;
+}
+.arg-bubble {
+  flex: 1;
+  background: var(--white);
+  border-radius: 0 12px 12px 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--green-pale);
+}
+.arg-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--gray);
+  margin-bottom: 4px;
+}
+.arg-text { font-size: 0.88rem; color: var(--dark); line-height: 1.5; }
+.arg-input-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 1rem;
+}
+.arg-input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid var(--green-pale);
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+}
+.arg-input-row input:focus { outline: none; border-color: var(--green-light); }
+.btn-send {
+  background: var(--green-mid);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 20px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+.btn-send:hover { background: var(--green-deep); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .debate-sides { grid-template-columns: 1fr; }
+}
+
+/* ── DEBATE STATUS BANNER ── */
+.debate-status-banner {
+  background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%);
+  border-radius: var(--radius);
+  padding: 1rem 1.5rem;
+  color: white;
+}
+.debate-status-banner.waiting {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  color: #1a1a1a;
+}
+.debate-status-banner.active {
+  background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%);
+}
+.debate-status-banner.finished {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+}
+
+/* ── MEMBERS LIST ── */
+.members-list {
+  padding: 0.5rem;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+}
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.member-avatar-sm {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--green-mid);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: white;
+}
+
+/* ── NO SESSION MESSAGE ── */
+.no-session-message {
+  border: 2px dashed var(--green-pale);
+}
+
+/* ── KANCING STATES ── */
+.kancing.depleted {
+  opacity: 0.3;
+  background: #666;
+  border-color: #444;
+}
+.kancing.depleted::after {
+  background: radial-gradient(circle, #333 0 2px, transparent 2.7px) 0 0/7px 7px;
+}
+
+/* ── SESSION STATUS INFO ── */
+#sessionStatusInfo {
+  border-left: 4px solid var(--yellow);
+}
+
+/* ── INPUT STYLES IN MODALS ── */
+.modal-form input, .modal-form select, .modal-form textarea {
+  transition: border-color 0.2s;
+}
+.modal-form input:focus, .modal-form select:focus, .modal-form textarea:focus {
+  border-color: var(--green-mid);
+  outline: none;
+}

@@ -1,0 +1,160 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   BASE STYLES - Variables, Reset, Background
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --green-deep: #1B4332;
+  --green-mid: #2D6A4F;
+  --green-light: #52B788;
+  --green-pale: #B7E4C7;
+  --yellow: #F4C430;
+  --yellow-light: #FFF3B0;
+  --earth: #8B5E3C;
+  --white: #F8FAF5;
+  --dark: #0D2818;
+  --gray: #6B7280;
+  --card-bg: rgba(255,255,255,0.92);
+  --shadow: 0 4px 24px rgba(29,67,50,0.12);
+  --radius: 16px;
+  --radius-sm: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(180deg, #b8e8f5 0%, #d4f0e0 30%, #e8f7ee 60%, #f0faf4 100%);
+  background-attachment: fixed;
+  color: var(--dark);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── SKY & EARTH CANVAS BACKGROUND ── */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* All content above canvas */
+.page, .navbar, .modal-overlay, .toast, #floatingLeaves {
+  position: relative;
+  z-index: 1;
+}
+.navbar { z-index: 100; }
+.modal-overlay { z-index: 200 !important; }
+.toast { z-index: 500 !important; }
+
+/* ── ANIMATED FLOATING ELEMENTS ── */
+.bg-floater {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+  animation: floatDrift linear infinite;
+  opacity: 0;
+  font-size: 1.6rem;
+  user-select: none;
+}
+@keyframes floatDrift {
+  0%   { transform: translateY(105vh) translateX(0) rotate(0deg);   opacity: 0; }
+  5%   { opacity: 0.55; }
+  50%  { transform: translateY(50vh)  translateX(30px) rotate(180deg); }
+  95%  { opacity: 0.45; }
+  100% { transform: translateY(-8vh)  translateX(-20px) rotate(360deg); opacity: 0; }
+}
+
+/* ── CLOUDS ── */
+.cloud-layer {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.cloud {
+  position: absolute;
+  opacity: 0.55;
+  animation: cloudDrift linear infinite;
+}
+@keyframes cloudDrift {
+  0%   { transform: translateX(-320px); }
+  100% { transform: translateX(calc(100vw + 320px)); }
+}
+
+/* ── FLOATING LEAVES ── */
+.floating-leaves {
+  position: absolute; inset: 0; pointer-events: none;
+}
+.leaf {
+  position: absolute;
+  font-size: 1.5rem;
+  opacity: 0.15;
+  animation: floatLeaf linear infinite;
+}
+@keyframes floatLeaf {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.15; }
+  90% { opacity: 0.15; }
+  100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+}
+
+/* ── CONTENT WRAPPER ── */
+.content { flex: 1; padding: 2rem; max-width: 960px; margin: 0 auto; width: 100%; }
+
+/* ── PAGE SYSTEM ── */
+.page { display: none; min-height: 100vh; }
+.page.active { display: flex; flex-direction: column; }
+
+/* ── MISC ── */
+.divider {
+  height: 1px;
+  background: var(--green-pale);
+  margin: 1.5rem 0;
+}
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+.page-header h2 {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 1.5rem;
+  color: var(--green-deep);
+}
+.page-header p { font-size: 0.85rem; color: var(--gray); margin-top: 2px; }
+.section-title {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: var(--green-deep);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── GLASS CARD EFFECT ── */
+.stage-card, .news-card, .news-detail, .video-section,
+.prep-rules, .groups-section, .refleksi-card, .comment-item,
+.argument-log, .eco-pack, .debate-board + div {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.stage-card, .news-card, .news-detail, .video-section,
+.prep-rules, .groups-section, .refleksi-card, .argument-log {
+  background: rgba(255,255,255,0.82) !important;
+  border: 1px solid rgba(82,183,136,0.2) !important;
+}
+.comment-item { background: rgba(255,255,255,0.82) !important; }
+.eco-pack { background: rgba(255,255,255,0.82) !important; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .content { padding: 1rem; }
+}
