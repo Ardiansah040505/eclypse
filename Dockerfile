@@ -42,12 +42,11 @@ RUN npm install && npm run build
 RUN chmod -R 755 /var/www/storage /var/www/bootstrap/cache /var/www/public/build \
     && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public/build
 
-# Railway requires listening on PORT env var
-ENV PORT=8000
+# Railway injects PORT env var - use it dynamically
 ENV TRUSTED_PROXIES=*
 
-# Expose port
-EXPOSE 8000
+# Expose port (Railway expects 8080 by default)
+EXPOSE 8080
 
-# Start server using artisan (more reliable than php -S)
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Start server - Railway injects PORT env var
+CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
