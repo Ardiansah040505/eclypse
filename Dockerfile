@@ -3,7 +3,7 @@ FROM php:8.4-cli
 # Set working directory
 WORKDIR /var/www
 
-# Install system dependencies (including libzip-dev for PHP zip extension)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
@@ -17,13 +17,13 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions (order matters - libzip-dev must be installed first)
+# Install PHP extensions
 RUN docker-php-ext-install pdo_mysql mbstring xml zip
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Install Node.js 20 and npm
+# Install Node.js 20
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -45,18 +45,16 @@ RUN npm install
 RUN npm run build
 
 # Set permissions for Laravel storage
-RUN chmod -R 755 /var/www/storage /var/www/bootstrap/cache \
+RUN chmod -R 755 /var/www/storage /var/www/bootstrap/cache /var/www/public/build \
     && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public/build
 
 # Railway requires listening on PORT env var
 ENV PORT=8000
+ENV TRUSTED_PROXIES=*
 
 # Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
-
 # Start server - Railway injects PORT env var
-CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=$PORT"]
+# Using php-server built-in which handles routing better
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]

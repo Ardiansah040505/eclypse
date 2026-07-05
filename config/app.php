@@ -52,7 +52,31 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'https://eclypse-production.up.railway.app'),
+    'url' => env('APP_URL', 'https://eclypse-5f7c.up.railway.app'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Asset URL
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used by the asset() helper to generate URLs for static files.
+    | Set this to match your APP_URL in production.
+    |
+    */
+
+    'asset_url' => env('ASSET_URL', env('APP_URL')),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Index File
+    |--------------------------------------------------------------------------
+    |
+    | This value determines the "index" file for the application. This will be
+    | used when generating clean URLs. Set to empty string for clean URLs.
+    |
+    */
+
+    'index' => '',
 
     /*
     |--------------------------------------------------------------------------
