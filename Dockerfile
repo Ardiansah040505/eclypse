@@ -28,9 +28,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Verify installations
-RUN node --version && npm --version && php --version
-
 # Copy application files
 COPY --chown=www-data:www-data . .
 
@@ -38,13 +35,10 @@ COPY --chown=www-data:www-data . .
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
     && chown -R www-data:www-data /var/www
 
-# Install JavaScript dependencies
-RUN npm install
+# Install JavaScript dependencies and build
+RUN npm install && npm run build
 
-# Build frontend assets (Vite production build)
-RUN npm run build
-
-# Set permissions for Laravel storage
+# Set permissions
 RUN chmod -R 755 /var/www/storage /var/www/bootstrap/cache /var/www/public/build \
     && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public/build
 
@@ -55,6 +49,5 @@ ENV TRUSTED_PROXIES=*
 # Expose port
 EXPOSE 8000
 
-# Start server - Railway injects PORT env var
-# Using php-server built-in which handles routing better
-CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]
+# Start server using artisan (more reliable than php -S)
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
