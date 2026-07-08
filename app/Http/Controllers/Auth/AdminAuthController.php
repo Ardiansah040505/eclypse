@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AdminAuthController extends Controller
 {
@@ -39,16 +40,17 @@ class AdminAuthController extends Controller
             ]);
         }
 
-        // Clear ALL session data first - important for security
-        session()->flush();
+        // Generate a simple token for authentication
+        $token = Str::random(64);
 
-        session([
-            'admin_id' => $admin->id,
-        ]);
+        // Store token in user record
+        $admin->api_token = $token;
+        $admin->save();
 
         return response()->json([
             'success' => true,
             'user' => $admin,
+            'token' => $token,
         ]);
     }
 }

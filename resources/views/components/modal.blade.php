@@ -1,5 +1,30 @@
 {{-- All Modals Component --}}
 
+{{-- Modal: Login Admin --}}
+<div class="modal-overlay" id="modal-admin-login">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-header">
+      <div class="modal-title">👤 Login Admin / Guru</div>
+      <button class="modal-close" onclick="closeModal('modal-admin-login')">✕</button>
+    </div>
+    <div class="modal-form">
+      <div>
+        <label>Username</label>
+        <input type="text" id="adminUsername" placeholder="Username admin..." autocomplete="username">
+      </div>
+      <div>
+        <label>Password</label>
+        <input type="password" id="adminPassword" placeholder="Password..." autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') submitAdminLogin()">
+      </div>
+      <div id="adminLoginError" style="display:none;color:#e53e3e;font-size:0.85rem;padding:8px 12px;background:#fff5f5;border-radius:8px;border:1px solid #feb2b2"></div>
+      <button class="btn-sm green" id="adminLoginBtn" onclick="submitAdminLogin()" style="width:100%;padding:12px;font-size:1rem">
+        Masuk sebagai Admin 🔐
+      </button>
+    </div>
+  </div>
+</div>
+
 {{-- Modal: Tambah Berita --}}
 <div class="modal-overlay" id="modal-addnews">
   <div class="modal-box">
@@ -104,13 +129,6 @@
     </div>
     <div class="modal-form">
       <div><label>Nama Kelompok</label><input type="text" id="groupName" placeholder="nama kelompok..."></div>
-      <div><label>Anggota (pisah dengan koma)</label><input type="text" id="groupMembers" placeholder="Rafi, Dian, Sari..."></div>
-      <div><label>Posisi Debat</label>
-        <select id="groupSide">
-          <option value="Pro">Pro Kebijakan</option>
-          <option value="Kontra">Kontra Kebijakan</option>
-        </select>
-      </div>
       <button class="btn-sm green" onclick="addGroup()">+ Tambahkan</button>
     </div>
   </div>
@@ -143,13 +161,13 @@
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
         <div>
-          <label style="color:#74E0A0;font-weight:700">✅ Tim PRO</label>
+          <label style="color:#74E0A0;font-weight:700">✅ Tim 1</label>
           <select id="proGroupSelect" style="width:100%;padding:10px;border:2px solid #74E0A0;border-radius:8px;font-size:0.9rem">
             <option value="">-- Pilih Kelompok --</option>
           </select>
         </div>
         <div>
-          <label style="color:#FF8A80;font-weight:700">❌ Tim KONTRA</label>
+          <label style="color:#FF8A80;font-weight:700">❌ Tim 2</label>
           <select id="conGroupSelect" style="width:100%;padding:10px;border:2px solid #FF8A80;border-radius:8px;font-size:0.9rem">
             <option value="">-- Pilih Kelompok --</option>
           </select>

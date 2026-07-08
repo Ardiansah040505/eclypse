@@ -3,6 +3,8 @@
 .env
 .env.backup
 .env.production
+.env.local
+.env.*.local
 .phpactor.json
 .phpunit.result.cache
 /.codex
@@ -28,3 +30,34 @@ Thumbs.db
 #agent
 .claude
 .claude/
+
+# ═══════════════════════════════════════════
+# Laravel Specific
+# ═══════════════════════════════════════════
+/storage/app/public
+/storage/debugbar
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/testing
+/storage/framework/views
+/storage/logs
+*.sqlite
+*.sqlite-journal
+
+# ═══════════════════════════════════════════
+# OS Specific
+# ═══════════════════════════════════════════
+*.swp
+*.swo
+*~
+Thumbs.db
+
+# ═══════════════════════════════════════════
+# Editor Specific
+# ═══════════════════════════════════════════
+*.sublime-*
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/dictionaries
+npm-debug.log
+yarn-error.log

@@ -24,10 +24,16 @@ class StudentNewsAnswerController extends Controller
             return response()->json(['success' => true, 'data' => ['answers' => [], 'answered_count' => 0, 'total_questions' => 0, 'is_completed' => false]]);
         }
 
+        // Decode JSON answers
+        $decodedAnswers = [];
+        if (!empty($answer->answers)) {
+            $decodedAnswers = is_string($answer->answers) ? json_decode($answer->answers, true) : $answer->answers;
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
-                'answers' => $answer->answers ?? [],
+                'answers' => $decodedAnswers,
                 'answered_count' => $answer->answered_count ?? 0,
                 'total_questions' => $answer->total_questions ?? 0,
                 'is_completed' => (bool)($answer->is_completed ?? false)
@@ -44,23 +50,41 @@ class StudentNewsAnswerController extends Controller
 
         $answers = $request->input('answers', []);
 
+        // Get total questions count from database
+        $totalQuestions = DB::table('news_questions')
+            ->where('learning_news_id', $newsId)
+            ->count();
+
         // Count answered
         $answeredCount = 0;
         foreach ($answers as $v) {
             if ($v !== null && $v !== '') $answeredCount++;
         }
 
+        // Check if all questions are answered
+        $isCompleted = $totalQuestions > 0 && $answeredCount >= $totalQuestions;
+
+        // JSON encode answers for storage
+        $answersJson = json_encode($answers);
+
         DB::table('student_news_answers')->updateOrInsert(
             ['student_id' => $studentId, 'news_id' => $newsId],
             [
-                'answers' => $answers,
+                'answers' => $answersJson,
                 'answered_count' => $answeredCount,
-                'total_questions' => count($answers),
-                'is_completed' => false,
+                'total_questions' => $totalQuestions,
+                'is_completed' => $isCompleted,
                 'updated_at' => now()
             ]
         );
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'answered_count' => $answeredCount,
+                'total_questions' => $totalQuestions,
+                'is_completed' => $isCompleted
+            ]
+        ]);
     }
 }

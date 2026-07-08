@@ -173,7 +173,6 @@ async function submitRefleksi() {
   }
 
   const submitBtn = document.getElementById('refleksiSubmitBtn');
-  const statusEl = document.getElementById('refleksiStatus');
 
   if (submitBtn) {
     submitBtn.disabled = true;
@@ -182,17 +181,21 @@ async function submitRefleksi() {
 
   try {
     const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const studentId = state.user?.id;
     const res = await fetch('/api/reflection', {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        'X-CSRF-TOKEN': token,
+        'X-Student-Id': studentId || ''
       },
-      body: JSON.stringify({ question: txt, student_id: state.user?.id })
+      body: JSON.stringify({ question: txt, student_id: studentId })
     });
 
     const data = await res.json();
+
+    console.log('Submit reflection response:', data);
 
     if (data.success) {
       input.value = '';
@@ -251,14 +254,16 @@ async function sendAnswer() {
 
   try {
     const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const adminId = state.user?.id;
     const res = await fetch(`/api/reflection/${id}/answer`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        'X-CSRF-TOKEN': token,
+        'X-Admin-Id': adminId || ''
       },
-      body: JSON.stringify({ answer: answerText })
+      body: JSON.stringify({ answer: answerText, admin_id: adminId })
     });
 
     const data = await res.json();
@@ -339,13 +344,12 @@ async function deleteReflection(id) {
   if (!confirm('Yakin ingin menghapus pertanyaan ini?')) return;
 
   try {
-    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const res = await fetch(`/api/reflection/${id}`, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       },
       body: JSON.stringify({
         admin_id: state.user?.id,

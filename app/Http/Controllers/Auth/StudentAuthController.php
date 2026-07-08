@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class StudentAuthController extends Controller
 {
@@ -20,9 +21,6 @@ class StudentAuthController extends Controller
             'nis'    => 'required',
             'school' => 'required',
         ]);
-
-        // Clear ALL session data first - important for security
-        session()->flush();
 
         // Create or find user
         $user = User::firstOrCreate(
@@ -40,14 +38,17 @@ class StudentAuthController extends Controller
         $user->last_seen = now()->toDateTimeString();
         $user->save();
 
-        // Set student session
-        session([
-            'student_id' => $user->id,
-        ]);
+        // Generate a simple token for authentication
+        $token = Str::random(64);
+
+        // Store token in user record (simple approach)
+        $user->api_token = $token;
+        $user->save();
 
         return response()->json([
             'success' => true,
             'user' => $user,
+            'token' => $token,
         ]);
     }
 }

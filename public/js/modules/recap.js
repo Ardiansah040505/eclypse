@@ -102,6 +102,8 @@ function saveOnlineMap(data) {
 
 async function sendHeartbeat() {
   if (!state.user || state.isAdmin) return; // hanya track siswa
+
+  // Save to localStorage first (always works offline)
   const key = getOnlineKey();
   if (key) {
     const map = loadOnlineMap();
@@ -113,16 +115,23 @@ async function sendHeartbeat() {
     saveOnlineMap(map);
   }
 
+  // Send to server only if we have a student_id
+  if (!state.user?.id) return;
+
   const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
   try {
-    const res = await fetch('/api/heartbeat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
-      },
-      body: JSON.stringify({ student_id: state.user?.id })
-    });
+    // Use sendBeacon for non-blocking heartbeat or short timeout
+    const res = await Promise.race([
+      fetch('/api/heartbeat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          
+        },
+        body: JSON.stringify({ student_id: state.user?.id })
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)) // 3 second timeout
+    ]);
     const data = await res.json();
     if (data.success) {
       state.myGroup = data.group;
@@ -131,7 +140,8 @@ async function sendHeartbeat() {
       }
     }
   } catch(e) {
-    console.error(e);
+    // Silently fail on timeout or network error - localStorage already saved
+    // console.log('Heartbeat skipped:', e.message);
   }
 }
 
@@ -150,7 +160,7 @@ function getOnlineList() {
 function startHeartbeat() {
   sendHeartbeat();
   if (_heartbeatInterval) clearInterval(_heartbeatInterval);
-  _heartbeatInterval = setInterval(sendHeartbeat, 15000); // tiap 15 detik
+  _heartbeatInterval = setInterval(sendHeartbeat, 30000); // tiap 30 detik (diperlambat untuk mengurangi beban server)
 }
 
 function stopHeartbeat() {
@@ -234,99 +244,45 @@ function updateProgressBar() {
 
 // ══════════════════ CSV EXPORT ══════════════════
 function downloadRecapCSV() {
-  const all = loadAllRecap();
-  const keys = Object.keys(all);
-  if (keys.length === 0) {
-    showToast('⚠️ Belum ada data siswa yang tercatat!');
-    return;
-  }
+  // Download dari server (ZIP dengan CSV per hari)
+  const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const adminId = state.user?.id;
 
-  // Kumpulkan semua kemungkinan kolom soal climate news & pemantik secara dinamis
-  let maxNewsQuestions = 0;
-  let maxPemantikQuestions = 0;
-  keys.forEach(k => {
-    const s = all[k];
-    if (s.climateNews) {
-      Object.values(s.climateNews).forEach(n => {
-        const c = Object.keys(n.jawaban || {}).length;
-        if (c > maxNewsQuestions) maxNewsQuestions = c;
-      });
+  showToast('⏳ Menyiapkan file download...');
+
+  fetch('/api/admin/download/all?admin_id=' + encodeURIComponent(adminId || ''), {
+    headers: {
+      'X-CSRF-TOKEN': token,
+      'X-Admin-Id': adminId || '',
+      'Accept': 'application/json'
     }
-    if (s.pemantik && s.pemantik.jawaban) {
-      const c = Object.keys(s.pemantik.jawaban).length;
-      if (c > maxPemantikQuestions) maxPemantikQuestions = c;
+  })
+  .then(res => {
+    if (!res.ok) {
+      if (res.status === 401) {
+        showToast('⚠️ Silakan login sebagai Admin terlebih dahulu');
+      } else {
+        showToast('⚠️ Gagal mengunduh data');
+      }
+      throw new Error('Download failed');
     }
+    return res.blob();
+  })
+  .then(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Rekap_ECLYPSE_' + new Date().toISOString().slice(0, 10) + '.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ Rekap berhasil diunduh!');
+  })
+  .catch(err => {
+    console.error('Download error:', err);
+    showToast('⚠️ Gagal mengunduh data');
   });
-
-  const headers = [
-    'Nama', 'NIS', 'Sekolah',
-    'Paket Eco Cards Dibuka',
-    ...Array.from({length: maxPemantikQuestions}, (_, i) => `Pemantik Soal ${i+1}`),
-    'Status Pemantik',
-    'Jumlah Berita Dijawab',
-    'Ringkasan Jawaban Climate News',
-    'Jumlah Pertanyaan ke Guru',
-    'Pertanyaan ke Guru (gabungan)',
-    'Update Terakhir'
-  ];
-
-  const rows = keys.map(k => {
-    const s = all[k];
-    const ecoPacks = s.ecoPacks ? s.ecoPacks.join(' | ') : '';
-    const pemantikAnswers = [];
-    for (let i = 0; i < maxPemantikQuestions; i++) {
-      pemantikAnswers.push(s.pemantik && s.pemantik.jawaban ? (s.pemantik.jawaban[i] || '') : '');
-    }
-    const pemantikStatus = s.pemantik ? 'Sudah Submit' : 'Belum Submit';
-    const newsCount = s.climateNews ? Object.keys(s.climateNews).length : 0;
-    const newsSummary = s.climateNews
-      ? Object.values(s.climateNews).map(n => `[${n.judul}] ${Object.entries(n.jawaban).map(([qi, ans]) => {
-          const q = n.questions[qi];
-          if (q && q.type === 'essay') return `Esai: ${ans}`;
-          if (q && q.options) return `${q.options[ans]}`;
-          return ans;
-        }).join('; ')}`).join(' || ')
-      : '';
-    const refleksiCount = s.refleksi ? s.refleksi.length : 0;
-    const refleksiText = s.refleksi ? s.refleksi.join(' | ') : '';
-
-    return [
-      s.nama, s.nis, s.sekolah,
-      ecoPacks,
-      ...pemantikAnswers,
-      pemantikStatus,
-      newsCount,
-      newsSummary,
-      refleksiCount,
-      refleksiText,
-      s.lastUpdate || s.timestamp || ''
-    ];
-  });
-
-  // escape CSV value
-  const escapeCSV = (val) => {
-    const str = String(val ?? '');
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-      return '"' + str.replace(/"/g, '""') + '"';
-    }
-    return str;
-  };
-
-  const csvLines = [headers.map(escapeCSV).join(',')];
-  rows.forEach(row => csvLines.push(row.map(escapeCSV).join(',')));
-  const csvContent = '﻿' + csvLines.join('\r\n'); // BOM untuk Excel agar baca UTF-8 dgn benar
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const today = new Date().toISOString().slice(0, 10);
-  a.href = url;
-  a.download = `Rekap_ECLYPSE_${today}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('✅ Rekap CSV berhasil diunduh!');
 }
 
 // Export functions globally

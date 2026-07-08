@@ -63,13 +63,13 @@
       </div>
       <div class="debate-sides">
         <div class="debate-side side-pro">
-          <h4>✅ PRO — <span id="proGroupName">Kelompok Hijau</span></h4>
+          <h4>✅ <span id="proGroupName">Kelompok Hijau</span></h4>
           <div class="kancing-label"><span id="proKancingCount">5</span> kancing tersisa · <span id="proMemberCount">5</span> anggota</div>
           <div class="team-buttons" id="proButtons"></div>
           <div id="proMembersList" class="members-list" style="margin-top:0.75rem;font-size:0.82rem;color:var(--gray)"></div>
         </div>
         <div class="debate-side side-con">
-          <h4>❌ KONTRA — <span id="conGroupName">Kelompok Merah</span></h4>
+          <h4>❌ <span id="conGroupName">Kelompok Merah</span></h4>
           <div class="kancing-label"><span id="conKancingCount">5</span> kancing tersisa · <span id="conMemberCount">5</span> anggota</div>
           <div class="team-buttons" id="conButtons"></div>
           <div id="conMembersList" class="members-list" style="margin-top:0.75rem;font-size:0.82rem;color:var(--gray)"></div>

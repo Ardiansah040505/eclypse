@@ -109,6 +109,7 @@ body {
 .page { display: none; min-height: 100vh; }
 .page.active { display: flex; flex-direction: column; }
 
+
 /* ── MISC ── */
 .divider {
   height: 1px;

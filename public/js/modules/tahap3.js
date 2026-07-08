@@ -36,9 +36,9 @@ async function submitPrepAnswers() {
     const val = inp.value.trim();
     if (!val) continue;
     try {
-      await fetch('/student/prep-answer', {
+      await fetch('/api/student/prep-answer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question_id: inp.dataset.qid, answer: val, student_id: state.user?.id })
       });
       saved++;
@@ -80,13 +80,13 @@ async function loadGroupsAndStudents() {
 async function loadStudentGroupInfo() {
   const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
   try {
-    const res = await fetch('/api/heartbeat', {
+    const res = await fetch('/api/heartbeat?include_group=1', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       },
-      body: JSON.stringify({ student_id: state.user?.id })
+      body: JSON.stringify({ student_id: state.user?.id, include_group: true })
     });
     const data = await res.json();
     if (data.success) {
@@ -119,7 +119,6 @@ function renderTahap3() {
             <div class="group-members">${members.length ? members.join(', ') : 'Belum ada anggota'}</div>
           </div>
           <div style="display:flex;align-items:center;gap:0.5rem">
-            <span class="group-badge">${group.side === 'pro' || group.side === 'Pro' ? '✅ PRO' : '❌ KONTRA'}</span>
             <button class="btn-sm" style="background:#dc3545;color:white;padding:4px 10px;font-size:0.75rem" onclick="deleteGroup(${group.id}, '${group.name.replace(/'/g, "\\'")}')">🗑 Hapus</button>
           </div>
         </div>
@@ -146,7 +145,7 @@ function renderTahap3() {
             <span class="online-student-name">${student.name}</span>
             <select class="group-select" onchange="assignStudentToGroup('${student.id}', this.value)">
               <option value="">Belum masuk kelompok</option>
-              ${(state.groups || []).map(group => `<option value="${group.id}" ${currentGroup?.id == group.id ? 'selected' : ''}>${group.icon || '👥'} ${group.name} (${group.side === 'pro' || group.side === 'Pro' ? 'Pro' : 'Kontra'})</option>`).join('')}
+              ${(state.groups || []).map(group => `<option value="${group.id}" ${currentGroup?.id == group.id ? 'selected' : ''}>${group.icon || '👥'} ${group.name}</option>`).join('')}
             </select>
           </div>`;
         }).join('')}
@@ -164,12 +163,6 @@ function renderTahap3() {
           <h3 style="margin-top:0;color:var(--green-deep);display:flex;align-items:center;gap:0.5rem">
             ${state.myGroup.icon || '👥'} Kelompok Anda: ${state.myGroup.name}
           </h3>
-          <div style="margin-bottom:0.75rem">
-            <span style="font-weight:bold">Posisi Debat:</span> 
-            <span class="badge" style="background:${state.myGroup.side === 'pro' || state.myGroup.side === 'Pro' ? 'var(--green)' : '#ff6b6b'};color:white;padding:3px 10px;border-radius:20px;font-size:0.8rem">
-              ${state.myGroup.side === 'pro' || state.myGroup.side === 'Pro' ? '✅ PRO KEBIJAKAN' : '❌ KONTRA KEBIJAKAN'}
-            </span>
-          </div>
           <div>
             <span style="font-weight:bold">Anggota Kelompok:</span>
             <p style="margin:4px 0 0 0;font-size:0.9rem;color:var(--dark)">${membersList}</p>
@@ -193,13 +186,13 @@ async function assignStudentToGroup(studentId, groupId) {
     if (groupId) {
       await fetch('/api/groups/assign', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ student_id: studentId, debate_group_id: groupId })
       });
     } else {
       await fetch(`/api/groups/student/${studentId}`, {
         method: 'DELETE',
-        headers: { 'X-CSRF-TOKEN': token }
+        headers: {  }
       });
     }
     await loadGroupsAndStudents();
@@ -212,7 +205,6 @@ async function assignStudentToGroup(studentId, groupId) {
 
 async function addGroup() {
   const name = document.getElementById('groupName')?.value?.trim();
-  const side = document.getElementById('groupSide')?.value || 'Pro';
   if (!name) { showToast('⚠️ Isi nama kelompok!'); return; }
   const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
@@ -222,14 +214,13 @@ async function addGroup() {
   try {
     await fetch('/api/groups', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
-      body: JSON.stringify({ name, side, icon })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, icon })
     });
 
     closeModal('modal-addgroup');
     showToast('✅ Kelompok ditambahkan!');
     if (document.getElementById('groupName')) document.getElementById('groupName').value = '';
-    if (document.getElementById('groupMembers')) document.getElementById('groupMembers').value = '';
     await loadGroupsAndStudents();
   } catch (e) {
     console.error(e);
@@ -249,7 +240,7 @@ async function deleteGroup(groupId, groupName) {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       }
     });
     showToast('🗑 Kelompok berhasil dihapus');

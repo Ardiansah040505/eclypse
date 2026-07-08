@@ -7,7 +7,7 @@ async function loadNews() {
 
     try{
         console.log("AKAN FETCH KE LARAVEL");
-        const response = await fetch('/admin/news');
+        const response = await fetch('/api/admin/news');
         console.log(response.status);
         const news = await response.json();
 
@@ -63,7 +63,7 @@ async function loadStudentAnswers() {
         // Load progress untuk setiap berita
         for (const news of state.news) {
             try {
-                const response = await fetch(`/student/news/${news.id}/answer?student_id=${state.user?.id || ''}`);
+                const response = await fetch(`/api/student/news/${news.id}/answer?student_id=${state.user?.id || ''}`);
                 if (response.status === 401) {
                     // User belum login, skip
                     console.log('User belum login, skip load answers');
@@ -107,9 +107,26 @@ function renderTahap1() {
   const nc = document.getElementById('newsContainer');
   if (!nc) return;
 
+  // Reload progress from localStorage if state is empty
+  loadProgressFromLocal();
+
   nc.innerHTML = state.news.map((n, i) => {
-    // Check progress for this news
-    const progress = state.newsProgress ? state.newsProgress[n.id] : null;
+    // Check progress for this news - check both state and localStorage
+    let progress = state.newsProgress ? state.newsProgress[n.id] : null;
+
+    // Also check localStorage for persisted progress
+    if (!progress) {
+      const recap = JSON.parse(localStorage.getItem('eclypse_recap') || '{}');
+      if (recap.climateNews && recap.climateNews[n.id]) {
+        const saved = recap.climateNews[n.id];
+        progress = {
+          answered_count: Object.keys(saved.jawaban || {}).length,
+          total_questions: saved.questions?.length || saved.jawaban ? Object.keys(saved.jawaban).length : 0,
+          is_completed: saved.jawaban && saved.questions && Object.keys(saved.jawaban).length >= saved.questions.length
+        };
+      }
+    }
+
     let statusBadge = '';
     if (progress) {
       if (progress.is_completed) {
@@ -117,23 +134,51 @@ function renderTahap1() {
       } else {
         statusBadge = `<span class="news-status-badge partial">📝 ${progress.answered_count}/${progress.total_questions}</span>`;
       }
+    } else if (n.questions && n.questions.length > 0) {
+      // Has questions but not answered yet - show empty state hint
+      statusBadge = `<span class="news-status-badge">📋 ${n.questions.length} soal</span>`;
     }
 
     return `
     <div class="news-card">
       ${n.image ? `<img src="${n.image}" class="news-card-image" alt="${n.title}" onerror="this.style.display='none'">` : ''}
       <div class="news-card-header">
-        <div class="news-tag">📰 ${n.tag}</div>
+        <div class="news-tag">📰 ${n.tag || 'Berita'}</div>
         ${statusBadge}
       </div>
       <h3>${n.title}</h3>
-      <p>${n.body.slice(0, 180)}...</p>
+      <p>${(n.body || n.content || '').slice(0, 180)}...</p>
       <div class="news-card-actions">
         ${state.isAdmin ? `<button class="btn-sm yellow" onclick="openNewsEditor(${i})">✏️ Edit</button><button class="btn-sm" style="background:#d9534f;color:white" onclick="deleteNews(${i})">🗑 Hapus</button>` : ''}
         <button class="btn-sm green" onclick="openNews(${i})">Baca Berita & Jawab →</button>
       </div>
     </div>
   `}).join('');
+}
+
+// Load progress from localStorage
+function loadProgressFromLocal() {
+  try {
+    const recap = JSON.parse(localStorage.getItem('eclypse_recap') || '{}');
+    if (recap.climateNews && state.news) {
+      for (const newsId in recap.climateNews) {
+        const saved = recap.climateNews[newsId];
+        const news = state.news.find(n => n.id == newsId || n.id === parseInt(newsId));
+        if (news) {
+          if (!state.newsProgress) state.newsProgress = {};
+          const answeredCount = Object.keys(saved.jawaban || {}).filter(k => saved.jawaban[k] !== '' && saved.jawaban[k] !== null).length;
+          const totalQuestions = saved.questions?.length || 0;
+          state.newsProgress[news.id] = {
+            answered_count: answeredCount,
+            total_questions: totalQuestions,
+            is_completed: totalQuestions > 0 && answeredCount >= totalQuestions
+          };
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error loading progress from localStorage:', e);
+  }
 }
 
 // ══════════════════ OPEN NEWS DETAIL ══════════════════
@@ -242,14 +287,17 @@ async function saveNewsAnswer() {
   // Simpan ke localStorage (backup)
   state.answers[state.selectedNewsIndex] = answers;
 
+  // Get CSRF token
+  const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
   // Simpan ke database
   try {
-    const response = await fetch(`/student/news/${news.id}/answer`, {
+    const response = await fetch(`/api/student/news/${news.id}/answer`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       },
       body: JSON.stringify({ answers: answers, student_id: state.user?.id })
     });
@@ -291,11 +339,17 @@ async function saveNewsAnswer() {
 
       updateProgressBar();
 
+      // Show success message and go back to news list
       if (data.data.is_completed) {
-        showToast('🎉 Semua soal dijawab! Tahap 1 selesai!');
+        showToast('🎉 Semua soal dijawab! Tahap 1 selesai!', 3000);
       } else {
-        showToast('✅ Jawaban berhasil disimpan!');
+        showToast('✅ Jawaban berhasil disimpan!', 2000);
       }
+
+      // Auto go back to news list after short delay
+      setTimeout(() => {
+        goTo('tahap1');
+      }, 1500);
     } else {
       showToast('⚠️ ' + (data.message || 'Gagal menyimpan ke server'));
     }
@@ -307,6 +361,9 @@ async function saveNewsAnswer() {
     saveStudentRecap('climateNews', state._newsRecap);
     updateProgressBar();
     showToast('✅ Jawaban tersimpan (offline)');
+    setTimeout(() => {
+      goTo('tahap1');
+    }, 1500);
   }
 }
 
@@ -412,7 +469,7 @@ async function saveArticleQuestions(){
         console.log("KIRIM SOAL KE-" + (i+1), q);
 
         const response=await fetch(
-            "/admin/news/"+news.id+"/question",
+            "/api/admin/news/"+news.id+"/question",
             {
 
                 method:"POST",
@@ -423,7 +480,7 @@ async function saveArticleQuestions(){
 
                     "Accept":"application/json",
 
-                    "X-CSRF-TOKEN":token
+                    
 
                 },
 
@@ -501,7 +558,7 @@ async function saveNewsEdits(){
         .querySelector('meta[name="csrf-token"]')
         .content;
 
-    const response=await fetch('/admin/news/'+news.id,{
+    const response=await fetch('/api/admin/news/'+news.id,{
 
         method:'PUT',
 
@@ -511,7 +568,7 @@ async function saveNewsEdits(){
 
             'Accept':'application/json',
 
-            'X-CSRF-TOKEN':token
+            
 
         },
 
@@ -553,7 +610,7 @@ async function deleteNews(index){
 
     const id=state.news[index].id;
 
-    const response=await fetch('/admin/news/'+id,{
+    const response=await fetch('/api/admin/news/'+id,{
 
         method:'DELETE',
 
@@ -561,7 +618,7 @@ async function deleteNews(index){
 
             'Accept':'application/json',
 
-            'X-CSRF-TOKEN':token
+            
 
         }
 
@@ -629,14 +686,14 @@ async function addNews() {
         .content;
 
     // First, create the news
-    const newsResponse = await fetch('/admin/news', {
+    const newsResponse = await fetch('/api/admin/news', {
 
         method: 'POST',
 
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-CSRF-TOKEN': token
+            
         },
 
         body: JSON.stringify({
@@ -653,12 +710,12 @@ async function addNews() {
     if (newsData.success && newsData.news){
         // Then save all questions
         for (const [i, q] of questions.entries()) {
-            await fetch('/admin/news/' + newsData.news.id + '/question', {
+            await fetch('/api/admin/news/' + newsData.news.id + '/question', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': token
+                    
                 },
                 body: JSON.stringify({
                     question: q.text,

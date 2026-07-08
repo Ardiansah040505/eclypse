@@ -108,7 +108,7 @@ function updateStatusBanner(session) {
         <strong>${statusTexts[session.status] || 'Status: ' + session.status}</strong>
         ${session.pro_group && session.con_group ? `
           <span style="opacity:0.8;margin-left:1rem">
-            ${session.pro_group.name} (PRO) vs ${session.con_group.name} (KONTRA)
+            ${session.pro_group.name} vs ${session.con_group.name}
           </span>
         ` : ''}
       </div>
@@ -174,15 +174,15 @@ function renderKancingControls() {
 
   const proCount = debateState.session?.pro_group?.kancing_count ?? 5;
   const conCount = debateState.session?.con_group?.kancing_count ?? 5;
-  const proName = debateState.session?.pro_group?.name || 'Tim PRO';
-  const conName = debateState.session?.con_group?.name || 'Tim KONTRA';
+  const proName = debateState.session?.pro_group?.name || 'Tim 1';
+  const conName = debateState.session?.con_group?.name || 'Tim 2';
   const proId = debateState.session?.pro_group?.id ?? null;
   const conId = debateState.session?.con_group?.id ?? null;
 
   // Jika belum ada group yang di-assign, tampilkan pesan + tombol akhiri
   if (!proId && !conId) {
     kc.innerHTML = `<div style="padding:12px;font-size:0.85rem;color:var(--gray);text-align:center">
-      ⚠️ Sesi ini tidak memiliki kelompok PRO & KONTRA.<br>
+      ⚠️ Sesi ini tidak memiliki kelompok.<br>
       <span style="font-size:0.78rem;opacity:0.7">Akhiri sesi ini lalu buat sesi baru dengan memilih kelompok.</span><br>
       <button class="btn-sm" style="margin-top:10px;background:#dc2626;color:#fff" onclick="finishDebateSession()">🏁 Akhiri Sesi Ini</button>
     </div>`;
@@ -251,7 +251,7 @@ async function confirmKancingReduction() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       },
       body: JSON.stringify({ reason: 'manual_reduction_by_admin' })
     });
@@ -280,7 +280,7 @@ async function resetKancing(groupId) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       }
     });
     const data = await res.json();
@@ -337,7 +337,7 @@ function renderArguments() {
       <div class="arg-avatar" style="${arg.side === 'con' ? 'background:var(--earth)' : ''}">${arg.user?.name?.charAt(0)?.toUpperCase() || '?'}</div>
       <div class="arg-bubble">
         <div class="arg-meta">
-          <span>${arg.user?.name || 'Unknown'} (${arg.side === 'pro' ? 'PRO' : 'KONTRA'})</span>
+          <span>${arg.user?.name || 'Unknown'}</span>
           <span>${arg.time || ''}</span>
         </div>
         <div class="arg-text">${arg.content}</div>
@@ -368,7 +368,7 @@ async function sendArgument() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       },
       body: JSON.stringify({ content: txt, student_id: state.user?.id })
     });
@@ -447,17 +447,14 @@ async function loadGroupsForSetup() {
       const proSelect = document.getElementById('proGroupSelect');
       const conSelect = document.getElementById('conGroupSelect');
 
-      const proGroups = data.data.filter(g => g.side === 'pro' || g.side === 'Pro');
-      const conGroups = data.data.filter(g => g.side === 'con' || g.side === 'Con');
-
       if (proSelect) {
-        proSelect.innerHTML = '<option value="">-- Pilih Kelompok PRO --</option>' +
-          proGroups.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name} (${g.members?.length || 0} anggota)</option>`).join('');
+        proSelect.innerHTML = '<option value="">-- Pilih Kelompok --</option>' +
+          data.data.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name} (${g.members?.length || 0} anggota)</option>`).join('');
       }
 
       if (conSelect) {
-        conSelect.innerHTML = '<option value="">-- Pilih Kelompok KONTRA --</option>' +
-          conGroups.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name} (${g.members?.length || 0} anggota)</option>`).join('');
+        conSelect.innerHTML = '<option value="">-- Pilih Kelompok --</option>' +
+          data.data.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name} (${g.members?.length || 0} anggota)</option>`).join('');
       }
 
       if (debateState.session?.pro_group?.id && proSelect) {
@@ -489,8 +486,8 @@ function updateSessionStatusInfo() {
     text.innerHTML = `
       <strong>${statusLabels[debateState.session.status] || debateState.session.status}</strong><br>
       ${debateState.session.topic ? 'Topik: ' + debateState.session.topic + '<br>' : ''}
-      PRO: ${debateState.session.pro_group?.name || 'Belum dipilih'} ·
-      KONTRA: ${debateState.session.con_group?.name || 'Belum dipilih'}
+      Tim 1: ${debateState.session.pro_group?.name || 'Belum dipilih'} ·
+      Tim 2: ${debateState.session.con_group?.name || 'Belum dipilih'}
     `;
   } else {
     info.style.display = 'none';
@@ -508,12 +505,12 @@ async function startDebateSession() {
   }
 
   if (!proGroupId) {
-    showToast('⚠️ Pilih kelompok PRO terlebih dahulu!');
+    showToast('⚠️ Pilih kelompok untuk Tim 1 terlebih dahulu!');
     return;
   }
 
   if (!conGroupId) {
-    showToast('⚠️ Pilih kelompok KONTRA terlebih dahulu!');
+    showToast('⚠️ Pilih kelompok untuk Tim 2 terlebih dahulu!');
     return;
   }
 
@@ -524,7 +521,7 @@ async function startDebateSession() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       },
       body: JSON.stringify({ topic, pro_group_id: proGroupId || null, con_group_id: conGroupId || null })
     });
@@ -541,7 +538,7 @@ async function startDebateSession() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       }
     });
     data = await res.json();
@@ -574,7 +571,7 @@ async function finishDebateSession() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       }
     });
     const data = await res.json();

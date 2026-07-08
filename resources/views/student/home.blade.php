@@ -1,8 +1,5 @@
 {{-- HOME PAGE --}}
 
-{{-- Navbar --}}
-@include('components.navbar')
-
 {{-- ═══════════════════════ HOME ═══════════════════════ --}}
 <div id="page-home" class="page">
   <div class="content">

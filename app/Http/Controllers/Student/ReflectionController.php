@@ -119,11 +119,21 @@ class ReflectionController extends Controller
      */
     public function store(Request $request)
     {
-        $studentId = $request->input('student_id') ?? session()->get('student_id');
+        // Accept student_id from body, query, or header
+        $studentId = $request->input('student_id')
+            ?? $request->query('student_id')
+            ?? $request->header('X-Student-Id')
+            ?? session()->get('student_id');
+
         if (!$studentId) {
+            Log::warning('Reflection store: No student_id found', [
+                'input' => $request->all(),
+                'query' => $request->query(),
+                'headers' => $request->headers()->all()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized - Please login again'
+                'message' => 'Unauthorized - No student ID'
             ], 401);
         }
 
@@ -152,10 +162,16 @@ class ReflectionController extends Controller
      */
     public function answer(Request $request, $id)
     {
-        if (session()->get('admin_id') === null) {
+        // Accept admin_id from body, query, or header
+        $adminId = $request->input('admin_id')
+            ?? $request->query('admin_id')
+            ?? $request->header('X-Admin-Id')
+            ?? session()->get('admin_id');
+
+        if (!$adminId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized - Admin login required'
             ], 401);
         }
 
@@ -164,7 +180,6 @@ class ReflectionController extends Controller
         ]);
 
         $reflection = Reflection::findOrFail($id);
-        $adminId = session()->get('admin_id');
 
         $reflection->update([
             'answer' => $request->answer,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class GroupController extends Controller
@@ -125,27 +126,30 @@ class GroupController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
-        // Update last_seen dengan timestamp sekarang (dalam detik)
+        // Update last_seen dengan timestamp sekarang
         \App\Models\User::where('id', $studentId)->update(['last_seen' => now()]);
 
-        // Get group of student
-        $member = DB::table('group_members')
-            ->where('student_id', $studentId)
-            ->first();
-
+        // Get group info only if needed (when viewing tahap3)
         $group = null;
-        if ($member) {
-            $group = DB::table('debate_groups')
-                ->where('id', $member->debate_group_id)
+        $includeGroup = $r->boolean('include_group', false);
+
+        if ($includeGroup) {
+            $member = DB::table('group_members')
+                ->where('student_id', $studentId)
                 ->first();
 
-            if ($group) {
-                // Get all members of this group
-                $group->members = DB::table('group_members as gm')
-                    ->join('users as u', 'gm.student_id', 'u.id')
-                    ->where('gm.debate_group_id', $group->id)
-                    ->select('u.id', 'u.name', 'u.nis', 'u.school as sekolah')
-                    ->get();
+            if ($member) {
+                $group = DB::table('debate_groups')
+                    ->where('id', $member->debate_group_id)
+                    ->first();
+
+                if ($group) {
+                    $group->members = DB::table('group_members as gm')
+                        ->join('users as u', 'gm.student_id', 'u.id')
+                        ->where('gm.debate_group_id', $group->id)
+                        ->select('u.id', 'u.name', 'u.nis', 'u.school as sekolah')
+                        ->get();
+                }
             }
         }
 
@@ -173,31 +177,19 @@ class GroupController extends Controller
     }
 
     /**
-     * Get current logged-in user from session (for page refresh restore)
+     * Get current logged-in user from token (for page refresh restore)
      */
-    public function me()
+    public function me(\Illuminate\Http\Request $request)
     {
-        $studentId = session('student_id');
-        $adminId   = session('admin_id');
+        $token = $request->query('token') ?? $request->header('X-Token');
 
-        if ($studentId) {
-            $user = \App\Models\User::find($studentId);
+        if ($token) {
+            $user = User::where('api_token', $token)->first();
             if ($user) {
                 return response()->json([
                     'success'  => true,
                     'user'     => $user,
-                    'is_admin' => false,
-                ]);
-            }
-        }
-
-        if ($adminId) {
-            $user = \App\Models\User::find($adminId);
-            if ($user) {
-                return response()->json([
-                    'success'  => true,
-                    'user'     => $user,
-                    'is_admin' => true,
+                    'is_admin' => $user->role === 'admin',
                 ]);
             }
         }

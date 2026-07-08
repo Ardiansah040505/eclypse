@@ -2,6 +2,29 @@
 // AUTHENTICATION - Login/Logout Functions
 // ══════════════════════════════════════════════════════════════════════════
 
+// Store auth token
+function setAuthToken(token) {
+    try {
+        localStorage.setItem('eclypse_token', token);
+    } catch(e) {
+        console.error('Failed to store token:', e);
+    }
+}
+
+function getAuthToken() {
+    try {
+        return localStorage.getItem('eclypse_token');
+    } catch(e) {
+        return null;
+    }
+}
+
+function clearAuthToken() {
+    try {
+        localStorage.removeItem('eclypse_token');
+    } catch(e) {}
+}
+
 // ══════════════════ LOGIN SISWA ══════════════════
 async function doLoginSiswa() {
 
@@ -26,20 +49,15 @@ async function doLoginSiswa() {
         return;
     }
 
-    const token = document
-        .querySelector('meta[name="csrf-token"]')
-        .content;
-
     try {
 
-        const response = await fetch('/login', {
+        const response = await fetch('/api/login', {
 
             method: 'POST',
 
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': token
+                'Accept': 'application/json'
             },
 
             body: JSON.stringify({
@@ -61,6 +79,11 @@ async function doLoginSiswa() {
             showToast("Login gagal");
 
             return;
+        }
+
+        // Store token for authentication
+        if (data.token) {
+            setAuthToken(data.token);
         }
 
         state.user = data.user;
@@ -87,64 +110,63 @@ function doLogin() {
 }
 
 // ══════════════════ LOGIN ADMIN ══════════════════
-async function doLoginAdmin() {
+function doLoginAdmin() {
+    // Buka modal login admin (mengganti prompt() yang lambat)
+    const errEl = document.getElementById('adminLoginError');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    const userEl = document.getElementById('adminUsername');
+    const passEl = document.getElementById('adminPassword');
+    if (userEl) userEl.value = '';
+    if (passEl) passEl.value = '';
+    openModal('modal-admin-login');
+    // Focus ke field username setelah modal terbuka
+    setTimeout(() => { if (userEl) userEl.focus(); }, 100);
+}
 
-    const username = prompt('Username admin:');
+async function submitAdminLogin() {
+    const username = (document.getElementById('adminUsername')?.value || '').trim();
+    const password = (document.getElementById('adminPassword')?.value || '').trim();
+    const errEl   = document.getElementById('adminLoginError');
+    const btn     = document.getElementById('adminLoginBtn');
 
-    if (!username) return;
+    if (!username || !password) {
+        if (errEl) { errEl.textContent = '⚠️ Username dan password wajib diisi.'; errEl.style.display = 'block'; }
+        return;
+    }
 
-    const password = prompt('Password:');
-
-    if (!password) return;
-
-    const token = document
-        .querySelector('meta[name="csrf-token"]')
-        .content;
+    // Loading state
+    if (btn) { btn.textContent = 'Memproses...'; btn.disabled = true; }
+    if (errEl) { errEl.style.display = 'none'; }
 
     try {
-
-        const response = await fetch('/admin/login', {
-
+        const response = await fetch('/api/admin/login', {
             method: 'POST',
-
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': token
-            },
-
-            body: JSON.stringify({
-
-                username,
-                password
-
-            })
-
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ username, password })
         });
 
         const data = await response.json();
 
         if (!data.success) {
-
-            showToast(data.message);
-
+            if (errEl) { errEl.textContent = '❌ ' + (data.message || 'Login gagal'); errEl.style.display = 'block'; }
+            if (btn) { btn.textContent = 'Masuk sebagai Admin 🔐'; btn.disabled = false; }
             return;
-
         }
 
-        state.user = data.user;
+        // Store token
+        if (data.token) setAuthToken(data.token);
+
+        state.user    = data.user;
         state.isAdmin = true;
 
+        closeModal('modal-admin-login');
         loginSuccess();
 
     } catch (e) {
-
         console.error(e);
-
-        showToast("Gagal terhubung ke server.");
-
+        if (errEl) { errEl.textContent = '❌ Tidak dapat terhubung ke server.'; errEl.style.display = 'block'; }
+        if (btn) { btn.textContent = 'Masuk sebagai Admin 🔐'; btn.disabled = false; }
     }
-
 }
 
 // ══════════════════ LOGIN SUCCESS ══════════════════
@@ -168,20 +190,19 @@ async function loginSuccess() {
 
     document.getElementById('mainNavbar').style.display='flex';
 
-    // Clean up stale online data when logging in
-    cleanupStaleOnlineData();
-
-    // Load video data from database
-    await loadVideoData();
-
-    // Load news data
-    await loadNews();
-
-    console.log("NEWS =",state.news);
-
+    // Navigasi ke home DULU agar user tidak melihat blank screen
     goTo('home');
 
     generateLeaves();
+
+    // Clean up stale online data when logging in
+    cleanupStaleOnlineData();
+
+    // Load data di background setelah halaman sudah ditampilkan
+    try { await loadVideoData(); } catch(e) { console.warn('loadVideoData error:', e); }
+    try { await loadNews(); } catch(e) { console.warn('loadNews error:', e); }
+
+    console.log("NEWS =",state.news);
 
     startHeartbeat();
 
@@ -216,20 +237,8 @@ async function doLogout() {
   // Stop heartbeat first
   stopHeartbeat();
 
-  // Call server-side logout to mark user as offline
-  try {
-    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    await fetch('/api/logout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': token
-      },
-      body: JSON.stringify({ student_id: state.user?.id })
-    });
-  } catch (e) {
-    console.error('Logout error:', e);
-  }
+  // Clear token
+  clearAuthToken();
 
   // Clear local state
   state.user = null;
@@ -277,19 +286,30 @@ async function restoreSession() {
   let savedPage;
   try { savedPage = sessionStorage.getItem('eclypse_page'); } catch(e) {}
 
-  if (!savedPage) return; // Tab baru atau belum pernah login → biarkan login page
+  // Check for stored token
+  const authToken = getAuthToken();
+  if (!authToken) return; // No token → belum pernah login → biarkan di login page
+
+  // Jika ada token tapi sessionStorage page kosong atau 'login',
+  // berarti ini paste URL baru → harus ke login page
+  if (!savedPage || savedPage === 'login') {
+    clearAuthToken();
+    return; // Hapus token, tampilkan login page
+  }
 
   try {
-    const res = await fetch('/api/me', { credentials: 'include' });
+    // Send token in request untuk validasi
+    const res = await fetch('/api/me?token=' + encodeURIComponent(authToken));
     const data = await res.json();
 
     if (!data.success) {
-      // Sesi server sudah expired → bersihkan sessionStorage
+      // Token invalid → bersihkan dan tampilkan login
+      clearAuthToken();
       try { sessionStorage.removeItem('eclypse_page'); } catch(e) {}
       return;
     }
 
-    // Pulihkan state
+    // Token valid → pulihkan session
     state.user = data.user;
     state.user.nama    = data.user.name;
     state.user.sekolah = data.user.school;
@@ -299,7 +319,7 @@ async function restoreSession() {
     await loginSuccess();
 
     // Lalu langsung lompat ke halaman yang tersimpan (jika bukan home)
-    if (savedPage !== 'home') {
+    if (savedPage && savedPage !== 'home') {
       goTo(savedPage);
     }
 

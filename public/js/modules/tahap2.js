@@ -31,9 +31,14 @@ const ecoPacks = [
 ];
 
 // ══════════════════ LOAD VIDEO FROM DATABASE ══════════════════
+let _videoLoaded = false;
 async function loadVideoData() {
+    // Prevent multiple calls
+    if (_videoLoaded) return;
+    _videoLoaded = true;
+
     try {
-        const response = await fetch('/video');
+        const response = await fetch('/api/video');
         const data = await response.json();
         if (data.success && data.data) {
             state.videoUrl = data.data.youtube_url || '';
@@ -345,12 +350,12 @@ async function updateVideo() {
 
   try {
     const token = document.querySelector('meta[name="csrf-token"]').content;
-    const response = await fetch('/admin/video', {
+    const response = await fetch('/api/admin/video', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-CSRF-TOKEN': token
+        
       },
       body: JSON.stringify({
         youtube_url: url,
@@ -448,9 +453,9 @@ async function clearVideo() {
   if (!confirm('Yakin ingin hapus video?')) return;
   try {
     const token = document.querySelector('meta[name="csrf-token"]').content;
-    await fetch('/admin/video', {
+    await fetch('/api/admin/video', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ youtube_url: '', title: '', description: '' })
     });
     state.videoUrl = '';
