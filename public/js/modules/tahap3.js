@@ -2,27 +2,68 @@
 // TAHAP 3 - Preparation Room
 // ═══════════════════════════════════════════
 
-// Load questions
+// Load questions based on student's selected role (eco card type)
 async function loadPrepQuestions() {
   try {
-    const res = await fetch('/api/preparation/questions');
+    // Get student's selected eco card role
+    const role = state.selectedEcoRole || 'all';
+    console.log('[DEBUG] loadPrepQuestions called, role:', role);
+    console.log('[DEBUG] state.selectedEcoRole:', state.selectedEcoRole);
+    console.log('[DEBUG] All state keys:', Object.keys(state));
+
+    const res = await fetch('/api/preparation/questions?role=' + encodeURIComponent(role));
     const data = await res.json();
+    console.log('[DEBUG] API response:', data);
     if (data.success) state.prepQuestions = data.data || [];
+    console.log('[DEBUG] state.prepQuestions:', state.prepQuestions);
     renderPrepForm();
-  } catch(e) { console.error(e); }
+  } catch(e) { console.error('[DEBUG] Error loading prep questions:', e); }
 }
 
 // Render pertanyaan
 function renderPrepForm() {
   const container = document.getElementById('prepFormContainer');
+  const actions = document.getElementById('prepFormActions');
+  const debugInfo = document.getElementById('debugPrepInfo');
+  const debugRole = document.getElementById('debugRole');
+  const debugCount = document.getElementById('debugCount');
+
+  // Tampilkan debug info
+  if (debugInfo) debugInfo.style.display = 'block';
+  if (debugRole) debugRole.textContent = state.selectedEcoRole || 'all';
+  if (debugCount) debugCount.textContent = state.prepQuestions?.length || 0;
+
+  console.log('[DEBUG] renderPrepForm called, container exists:', !!container);
   if (!container) return;
-  container.innerHTML = state.prepQuestions.map((q, i) => `
-    <div class="prep-item">
-      <div class="prep-num">${i + 1}</div>
-      <div class="prep-q">${q.question_text}</div>
-      <textarea class="prep-textarea" data-qid="${q.id}" placeholder="Tulis jawabanmu..." rows="3"></textarea>
+
+  console.log('[DEBUG] prepQuestions length:', state.prepQuestions?.length);
+
+  if (!state.prepQuestions || state.prepQuestions.length === 0) {
+    console.log('[DEBUG] No questions, hiding container');
+    container.style.display = 'none';
+    if (actions) actions.style.display = 'none';
+    return;
+  }
+
+  console.log('[DEBUG] Showing questions:', state.prepQuestions);
+  container.style.display = 'block';
+  if (actions) actions.style.display = 'flex';
+
+  container.innerHTML = `
+    <div style="background:white;border:2px solid var(--green);border-radius:16px;padding:1.5rem;margin-bottom:1rem">
+      <h3 style="margin:0 0 0.5rem 0;color:var(--green-deep);display:flex;align-items:center;gap:0.5rem">📋 Pertanyaan Persiapan</h3>
+      <p style="font-size:0.85rem;color:var(--gray);margin:0 0 1.25rem 0">Jawab pertanyaan berikut berdasarkan eco cards yang kamu pilih.</p>
+      ${state.prepQuestions.map((q, i) => `
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--green-pale)">
+          <div style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:#fbbf24;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem">${i + 1}</div>
+          <div style="flex:1">
+            <div style="font-size:0.92rem;color:var(--dark);line-height:1.5;margin-bottom:0.75rem">${q.question_text}</div>
+            <textarea class="prep-textarea" data-qid="${q.id}" placeholder="Tulis jawabanmu..." rows="3" style="width:100%;border:2px solid var(--green-pale);border-radius:10px;padding:0.75rem;font-family:'Nunito',sans-serif;font-size:0.85rem;resize:vertical;box-sizing:border-box;transition:border 0.18s;background:#fafffe" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--green-pale)'"></textarea>
+          </div>
+        </div>
+      `).join('')}
     </div>
-  `).join('');
+  `;
 
   const btn = document.getElementById('prepSubmitBtn');
   if (btn) btn.onclick = submitPrepAnswers;

@@ -79,24 +79,14 @@ class DownloadController extends Controller
             ->get();
 
         foreach ($newsAnswers as $row) {
-            $key = $row->student_id . '_' . $row->created_at;
+            $key = $row->student_id . '_' . substr($row->created_at, 0, 10);
             if (!isset($allData[$key])) {
-                $allData[$key] = [
-                    'student_id' => $row->student_id,
-                    'nama' => $row->nama,
-                    'nis' => $row->nis ?? '',
-                    'sekolah' => $row->sekolah ?? '',
-                    'date' => substr($row->created_at, 0, 10),
-                    'jawaban_berita' => [],
-                    'jawaban_pemantik' => [],
-                    'pertanyaan_refleksi' => [],
-                    'jawaban_refleksi' => [],
-                ];
+                $allData[$key] = $this->createEmptyRecord($row);
             }
             $allData[$key]['jawaban_berita'][] = $row->berita_judul . ': ' . ($row->answers ?? '');
         }
 
-        // 2. Preparation (Pemantik) Answers
+        // 2. Preparation (Pemantik) Answers - with role
         $prepAnswers = DB::table('preparation_answers as pa')
             ->join('users as u', 'pa.student_id', 'u.id')
             ->leftJoin('preparation_questions as pq', 'pa.question_id', 'pq.id')
@@ -107,6 +97,8 @@ class DownloadController extends Controller
                 'u.school as sekolah',
                 'pa.answer',
                 'pq.order as soal_order',
+                'pq.role as soal_role',
+                'pq.question_text as soal_teks',
                 'pa.created_at'
             )
             ->orderBy('pa.student_id')
@@ -114,21 +106,17 @@ class DownloadController extends Controller
             ->get();
 
         foreach ($prepAnswers as $row) {
-            $key = $row->student_id . '_' . $row->created_at;
+            $key = $row->student_id . '_' . substr($row->created_at, 0, 10);
             if (!isset($allData[$key])) {
-                $allData[$key] = [
-                    'student_id' => $row->student_id,
-                    'nama' => $row->nama,
-                    'nis' => $row->nis ?? '',
-                    'sekolah' => $row->sekolah ?? '',
-                    'date' => substr($row->created_at, 0, 10),
-                    'jawaban_berita' => [],
-                    'jawaban_pemantik' => [],
-                    'pertanyaan_refleksi' => [],
-                    'jawaban_refleksi' => [],
-                ];
+                $allData[$key] = $this->createEmptyRecord($row);
             }
-            $allData[$key]['jawaban_pemantik'][(int)$row->soal_order] = $row->answer ?? '';
+            // Group by role
+            $role = $row->soal_role ?? 'all';
+            if (!isset($allData[$key]['jawaban_pemantik'][$role])) {
+                $allData[$key]['jawaban_pemantik'][$role] = [];
+            }
+            $allData[$key]['jawaban_pemantik'][$role][(int)$row->soal_order] = $row->answer ?? '';
+            $allData[$key]['pertanyaan_pemantik'][$role][(int)$row->soal_order] = $row->soal_teks ?? '';
         }
 
         // 3. Reflections (Questions & Answers)
@@ -148,19 +136,9 @@ class DownloadController extends Controller
             ->get();
 
         foreach ($reflections as $row) {
-            $key = $row->student_id . '_' . $row->created_at;
+            $key = $row->student_id . '_' . substr($row->created_at, 0, 10);
             if (!isset($allData[$key])) {
-                $allData[$key] = [
-                    'student_id' => $row->student_id,
-                    'nama' => $row->nama,
-                    'nis' => $row->nis ?? '',
-                    'sekolah' => $row->sekolah ?? '',
-                    'date' => substr($row->created_at, 0, 10),
-                    'jawaban_berita' => [],
-                    'jawaban_pemantik' => [],
-                    'pertanyaan_refleksi' => [],
-                    'jawaban_refleksi' => [],
-                ];
+                $allData[$key] = $this->createEmptyRecord($row);
             }
             if ($row->pertanyaan) {
                 $allData[$key]['pertanyaan_refleksi'][] = $row->pertanyaan;
@@ -171,6 +149,25 @@ class DownloadController extends Controller
         }
 
         return $allData;
+    }
+
+    /**
+     * Create empty record template
+     */
+    private function createEmptyRecord($row)
+    {
+        return [
+            'student_id' => $row->student_id,
+            'nama' => $row->nama,
+            'nis' => $row->nis ?? '',
+            'sekolah' => $row->sekolah ?? '',
+            'date' => substr($row->created_at ?? date('Y-m-d H:i:s'), 0, 10),
+            'jawaban_berita' => [],
+            'jawaban_pemantik' => [],
+            'pertanyaan_pemantik' => [],
+            'pertanyaan_refleksi' => [],
+            'jawaban_refleksi' => [],
+        ];
     }
 
     /**
@@ -198,7 +195,36 @@ class DownloadController extends Controller
      */
     private function generateCsv($date, $students)
     {
-        $headers = ['No', 'Nama', 'NIS', 'Sekolah', 'Jawaban Berita', 'Pemantik 1', 'Pemantik 2', 'Pemantik 3', 'Pemantik 4', 'Pemantik 5', 'Pertanyaan Refleksi', 'Jawaban Refleksi'];
+        // Headers: Nama, NIS, Sekolah, Jawaban Berita,
+        // Pertanyaan Pemantik Universal, Jawaban Universal 1-5,
+        // Pertanyaan Pemantik Peneliti, Jawaban Peneliti 1-5,
+        // Pertanyaan Pemantik Aktivis, Jawaban Aktivis 1-5,
+        // Pertanyaan Pemantik Pedagang, Jawaban Pedagang 1-5,
+        // Pertanyaan Refleksi, Jawaban Refleksi
+        $headers = [
+            'No', 'Nama', 'NIS', 'Sekolah', 'Jawaban Berita',
+            'Pemantik Universal - Soal 1', 'Pemantik Universal - Jawaban 1',
+            'Pemantik Universal - Soal 2', 'Pemantik Universal - Jawaban 2',
+            'Pemantik Universal - Soal 3', 'Pemantik Universal - Jawaban 3',
+            'Pemantik Universal - Soal 4', 'Pemantik Universal - Jawaban 4',
+            'Pemantik Universal - Soal 5', 'Pemantik Universal - Jawaban 5',
+            'Pemantik Peneliti - Soal 1', 'Pemantik Peneliti - Jawaban 1',
+            'Pemantik Peneliti - Soal 2', 'Pemantik Peneliti - Jawaban 2',
+            'Pemantik Peneliti - Soal 3', 'Pemantik Peneliti - Jawaban 3',
+            'Pemantik Peneliti - Soal 4', 'Pemantik Peneliti - Jawaban 4',
+            'Pemantik Peneliti - Soal 5', 'Pemantik Peneliti - Jawaban 5',
+            'Pemantik Aktivis - Soal 1', 'Pemantik Aktivis - Jawaban 1',
+            'Pemantik Aktivis - Soal 2', 'Pemantik Aktivis - Jawaban 2',
+            'Pemantik Aktivis - Soal 3', 'Pemantik Aktivis - Jawaban 3',
+            'Pemantik Aktivis - Soal 4', 'Pemantik Aktivis - Jawaban 4',
+            'Pemantik Aktivis - Soal 5', 'Pemantik Aktivis - Jawaban 5',
+            'Pemantik Pedagang - Soal 1', 'Pemantik Pedagang - Jawaban 1',
+            'Pemantik Pedagang - Soal 2', 'Pemantik Pedagang - Jawaban 2',
+            'Pemantik Pedagang - Soal 3', 'Pemantik Pedagang - Jawaban 3',
+            'Pemantik Pedagang - Soal 4', 'Pemantik Pedagang - Jawaban 4',
+            'Pemantik Pedagang - Soal 5', 'Pemantik Pedagang - Jawaban 5',
+            'Pertanyaan Refleksi', 'Jawaban Refleksi'
+        ];
 
         $lines = [];
         $lines[] = implode(',', $headers);
@@ -211,14 +237,22 @@ class DownloadController extends Controller
                 $this->escapeCsv($student['nis']),
                 $this->escapeCsv($student['sekolah']),
                 $this->escapeCsv(implode(' | ', $student['jawaban_berita'])),
-                $this->escapeCsv($student['jawaban_pemantik'][1] ?? ''),
-                $this->escapeCsv($student['jawaban_pemantik'][2] ?? ''),
-                $this->escapeCsv($student['jawaban_pemantik'][3] ?? ''),
-                $this->escapeCsv($student['jawaban_pemantik'][4] ?? ''),
-                $this->escapeCsv($student['jawaban_pemantik'][5] ?? ''),
-                $this->escapeCsv(implode(' || ', $student['pertanyaan_refleksi'])),
-                $this->escapeCsv(implode(' || ', $student['jawaban_refleksi'])),
             ];
+
+            // Add pemantik answers by role (Universal, Peneliti, Aktivis, Pedagang)
+            foreach (['all', 'peneliti', 'aktivis', 'pedagang'] as $role) {
+                $roleAnswers = $student['jawaban_pemantik'][$role] ?? [];
+                $roleQuestions = $student['pertanyaan_pemantik'][$role] ?? [];
+                for ($i = 1; $i <= 5; $i++) {
+                    $row[] = $this->escapeCsv($roleQuestions[$i] ?? '');
+                    $row[] = $this->escapeCsv($roleAnswers[$i] ?? '');
+                }
+            }
+
+            // Refleksi
+            $row[] = $this->escapeCsv(implode(' || ', $student['pertanyaan_refleksi']));
+            $row[] = $this->escapeCsv(implode(' || ', $student['jawaban_refleksi']));
+
             $lines[] = implode(',', $row);
         }
 
@@ -257,14 +291,42 @@ STRUKTUR FILE:
 - Nama file CSV = tanggal pembelajaran (format: YYYY-MM-DD.csv)
 
 KOLOM CSV:
-1. No          - Nomor urut
-2. Nama        - Nama lengkap siswa
-3. NIS         - Nomor Induk Siswa
-4. Sekolah     - Nama sekolah
-5. Jawaban Berita - Jawaban siswa dari Tahap 1 (Climate News)
-6. Pemantik 1-5 - Jawaban 5 pertanyaan pemantik dari Tahap 3
-7. Pertanyaan Refleksi - Pertanyaan yang diajukan siswa di Tahap 5
-8. Jawaban Refleksi - Jawaban dari guru/admin
+1. No                     - Nomor urut
+2. Nama                   - Nama lengkap siswa
+3. NIS                    - Nomor Induk Siswa
+4. Sekolah                - Nama sekolah
+5. Jawaban Berita         - Jawaban siswa dari Tahap 1 (Climate News)
+
+PEMANTIK UNIVERSAL (Semua siswa):
+6-7.  Pemantik Universal - Soal 1, Jawaban 1
+8-9.  Pemantik Universal - Soal 2, Jawaban 2
+10-11. Pemantik Universal - Soal 3, Jawaban 3
+12-13. Pemantik Universal - Soal 4, Jawaban 4
+14-15. Pemantik Universal - Soal 5, Jawaban 5
+
+PEMANTIK PENELITI (Siswa pilih Paket Peneliti):
+16-17. Pemantik Peneliti - Soal 1, Jawaban 1
+18-19. Pemantik Peneliti - Soal 2, Jawaban 2
+20-21. Pemantik Peneliti - Soal 3, Jawaban 3
+22-23. Pemantik Peneliti - Soal 4, Jawaban 4
+24-25. Pemantik Peneliti - Soal 5, Jawaban 5
+
+PEMANTIK AKTIVIS (Siswa pilih Paket Aktivis):
+26-27. Pemantik Aktivis - Soal 1, Jawaban 1
+28-29. Pemantik Aktivis - Soal 2, Jawaban 2
+30-31. Pemantik Aktivis - Soal 3, Jawaban 3
+32-33. Pemantik Aktivis - Soal 4, Jawaban 4
+34-35. Pemantik Aktivis - Soal 5, Jawaban 5
+
+PEMANTIK PEDAGANG (Siswa pilih Paket Pedagang):
+36-37. Pemantik Pedagang - Soal 1, Jawaban 1
+38-39. Pemantik Pedagang - Soal 2, Jawaban 2
+40-41. Pemantik Pedagang - Soal 3, Jawaban 3
+42-43. Pemantik Pedagang - Soal 4, Jawaban 4
+44-45. Pemantik Pedagang - Soal 5, Jawaban 5
+
+46. Pertanyaan Refleksi   - Pertanyaan siswa di Tahap 5
+47. Jawaban Refleksi      - Jawaban dari guru/admin
 
 TANGGAL DOWNLOAD: {date}
 JUMLAH FILE CSV: {count} file

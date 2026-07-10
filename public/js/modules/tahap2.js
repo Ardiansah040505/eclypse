@@ -110,6 +110,14 @@ function openEcoPack(packId) {
   const isNew = !state.openedPacks[packId];
   state.openedPacks[packId] = true;
 
+  // Simpan role yang dipilih (untuk pertanyaan pemantik)
+  state.selectedEcoRole = packId; // 'peneliti', 'aktivis', atau 'pedagang'
+
+  // Simpan ke localStorage
+  if (typeof savePersistedState === 'function') {
+    savePersistedState();
+  }
+
   // simpan state gacha
   state._gacha = { cards, packId, idx: 0, isNew, isFirstOpen };
 
@@ -254,6 +262,12 @@ function finishPackAndGoNext() {
 
   // Simpan progress
   saveStudentRecap('ecoPacks', Object.keys(state.openedPacks || {}));
+
+  // Simpan state ke localStorage
+  if (typeof savePersistedState === 'function') {
+    savePersistedState();
+  }
+
   updateProgressBar();
 
   showToast('🎉 Kamu sudah menyelesaikan Tahap 2! Lanjut ke Tahap 3...', 4000);
@@ -287,6 +301,12 @@ function closePackView() {
     saveStudentRecap('ecoPacks', Object.keys(state.openedPacks || {}));
     updateProgressBar();
   }
+
+  // Simpan state ke localStorage
+  if (typeof savePersistedState === 'function') {
+    savePersistedState();
+  }
+
   renderTahap2();
 }
 

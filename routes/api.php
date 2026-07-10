@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\RefleksiQuestionController;
+use App\Http\Controllers\Student\RefleksiAnswerController;
 use App\Http\Controllers\Auth\StudentAuthController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\LearningNewsController;
@@ -14,7 +16,15 @@ use App\Http\Controllers\Student\StudentNewsAnswerController;
 use App\Http\Controllers\Admin\GroupController;
 use App\Http\Controllers\Admin\DownloadController;
 
-// Auth Routes
+// Routes Tahap 5 - Refleksi Questions (Admin CRUD)
+Route::get('refleksi-questions', [RefleksiQuestionController::class, 'index']);
+Route::get('refleksi-questions/student', [RefleksiQuestionController::class, 'forStudent']);
+Route::post('refleksi-questions', [RefleksiQuestionController::class, 'store']);
+Route::put('refleksi-questions/{id}', [RefleksiQuestionController::class, 'update']);
+Route::delete('refleksi-questions/{id}', [RefleksiQuestionController::class, 'destroy']);
+
+// Student Refleksi Answer
+Route::post('student/refleksi-answer', [RefleksiAnswerController::class, 'save']);
 Route::post('login', [StudentAuthController::class, 'login']);
 Route::post('admin/login', [AdminAuthController::class, 'login']);
 
@@ -30,9 +40,16 @@ Route::delete('admin/question/{id}', [NewsQuestionController::class, 'destroy'])
 Route::get('video', [VideoController::class, 'show']);
 Route::post('admin/video', [VideoController::class, 'save']);
 
-// Routes Tahap 3 - Prep Questions
+// Routes Tahap 3 - Prep Questions (Student)
 Route::get('preparation/questions', [PrepController::class, 'questions']);
 Route::post('student/prep-answer', [PrepAnswerController::class, 'save']);
+
+// Routes Tahap 3 - Prep Questions (Admin CRUD)
+Route::get('admin/prep-questions', [\App\Http\Controllers\Admin\PrepQuestionController::class, 'index']);
+Route::post('admin/prep-questions', [\App\Http\Controllers\Admin\PrepQuestionController::class, 'store']);
+Route::put('admin/prep-questions/{id}', [\App\Http\Controllers\Admin\PrepQuestionController::class, 'update']);
+Route::delete('admin/prep-questions/{id}', [\App\Http\Controllers\Admin\PrepQuestionController::class, 'destroy']);
+Route::post('admin/prep-questions/bulk', [\App\Http\Controllers\Admin\PrepQuestionController::class, 'bulkStore']);
 
 // Routes Tahap 1 - Student News Answers
 Route::get('student/news/{id}/answer', [StudentNewsAnswerController::class, 'show']);

@@ -21,10 +21,14 @@ async function renderTahap5() {
     if (studentView) studentView.style.display = 'none';
     if (adminView) adminView.style.display = 'block';
     if (recapPanel) recapPanel.style.display = 'block';
+    // Load prep questions for admin (CRUD panel)
+    await loadAdminPrepQuestions();
   } else {
     if (studentView) studentView.style.display = 'block';
     if (adminView) adminView.style.display = 'none';
     if (recapPanel) recapPanel.style.display = 'none';
+    // Load prep questions for student based on their selected eco role
+    await loadStudentPrepQuestions();
   }
 
   // Load reflections
@@ -349,7 +353,7 @@ async function deleteReflection(id) {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        
+
       },
       body: JSON.stringify({
         admin_id: state.user?.id,
@@ -374,6 +378,314 @@ async function deleteReflection(id) {
   }
 }
 
+// ══════════════════ REFLEKSI QUESTIONS FOR STUDENT (Tahap 5) ══════════════════
+
+// Muat pertanyaan refleksi untuk SISWA berdasarkan role eco card yang dipilih di tahap 2
+async function loadStudentPrepQuestions() {
+  try {
+    const role = state.selectedEcoRole || 'all';
+    console.log('[Tahap5] loadStudentRefleksiQuestions, role:', role);
+
+    const res = await fetch('/api/refleksi-questions/student?role=' + encodeURIComponent(role));
+    const data = await res.json();
+
+    if (data.success) {
+      renderStudentRefleksiQuestions(data.data || [], role);
+    }
+  } catch (e) {
+    console.error('[Tahap5] Error loading student refleksi questions:', e);
+  }
+}
+
+// Tampilkan pertanyaan refleksi di panel siswa (dengan kolom jawaban)
+function renderStudentRefleksiQuestions(questions, role) {
+  const panel = document.getElementById('studentPrepQuestionsPanel');
+  const list = document.getElementById('studentPrepQuestionsList');
+  const noMessage = document.getElementById('noStudentPrepQuestionsMessage');
+  const roleLabel = document.getElementById('studentPrepRoleLabel');
+
+  if (!panel) return;
+
+  // Selalu tampilkan panel
+  panel.style.display = 'block';
+
+  // Label role
+  const roleLabels = {
+    'peneliti': '🔬 Pertanyaan Refleksi untuk Paket Peneliti',
+    'aktivis':  '🌿 Pertanyaan Refleksi untuk Paket Aktivis',
+    'pedagang': '🛒 Pertanyaan Refleksi untuk Paket Pedagang',
+    'all':      '🌐 Pertanyaan Refleksi Universal untuk Semua Role'
+  };
+  if (roleLabel) {
+    roleLabel.textContent = roleLabels[role] || roleLabels['all'];
+  }
+
+  if (!questions || questions.length === 0) {
+    if (list) list.innerHTML = '';
+    if (noMessage) noMessage.style.display = 'block';
+    return;
+  }
+
+  if (noMessage) noMessage.style.display = 'none';
+
+  if (list) {
+    list.innerHTML = `
+      <div>
+        ${questions.map((q, i) => `
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 4px;border-bottom:1px solid var(--green-pale)">
+            <div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:#fbbf24;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.85rem">${i + 1}</div>
+            <div style="flex:1">
+              <div style="font-size:0.92rem;color:var(--dark);line-height:1.5;margin-bottom:0.6rem">${q.question_text}</div>
+              <textarea
+                class="student-prep-answer"
+                data-qid="${q.id}"
+                placeholder="Tulis jawaban refleksimu di sini..."
+                rows="3"
+                style="width:100%;border:2px solid var(--green-pale);border-radius:10px;padding:0.6rem 0.8rem;font-family:'Nunito',sans-serif;font-size:0.85rem;resize:vertical;box-sizing:border-box;transition:border 0.18s"
+                onfocus="this.style.borderColor='var(--green)'"
+                onblur="this.style.borderColor='var(--green-pale)'"
+              ></textarea>
+            </div>
+          </div>
+        `).join('')}
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:0.75rem;margin-top:1rem">
+          <span id="prepAnswerTahap5Status" style="font-size:0.8rem;color:var(--gray);font-weight:600"></span>
+          <button class="btn-sm green" onclick="submitStudentRefleksiAnswers()">Submit Jawaban ✅</button>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// Simpan jawaban siswa untuk pertanyaan refleksi di tahap 5
+async function submitStudentRefleksiAnswers() {
+  const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const inputs = document.querySelectorAll('#studentPrepQuestionsList .student-prep-answer');
+  const status = document.getElementById('prepAnswerTahap5Status');
+
+  let saved = 0;
+  for (const inp of inputs) {
+    const val = inp.value.trim();
+    if (!val) continue;
+    try {
+      const res = await fetch('/api/student/refleksi-answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': token
+        },
+        body: JSON.stringify({
+          question_id: inp.dataset.qid,
+          answer: val,
+          student_id: state.user?.id
+        })
+      });
+      const data = await res.json();
+      if (data.success) saved++;
+    } catch (e) {
+      console.error('[Tahap5] Error saving refleksi answer:', e);
+    }
+  }
+
+  if (saved > 0) {
+    if (status) status.textContent = `✅ ${saved} jawaban tersimpan`;
+    showToast(`✅ ${saved} jawaban refleksi berhasil tersimpan!`);
+  } else {
+    showToast('⚠️ Isi setidaknya satu jawaban dulu!');
+  }
+}
+
+
+
+// ══════════════════ REFLEKSI QUESTIONS MANAGEMENT (ADMIN) ══════════════════
+let prepQuestionsState = {
+  allQuestions: [],
+  filteredQuestions: [],
+  currentFilter: 'all'
+};
+
+// Load refleksi questions for admin (CRUD panel)
+async function loadAdminPrepQuestions() {
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const res = await fetch('/api/refleksi-questions', {
+      headers: {
+        'X-CSRF-TOKEN': token,
+        'X-Admin-Id': state.user?.id || ''
+      }
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      prepQuestionsState.allQuestions = data.data || [];
+      filterPrepQuestions(prepQuestionsState.currentFilter);
+    }
+  } catch (e) {
+    console.error('Error loading admin refleksi questions:', e);
+  }
+}
+
+// Filter prep questions by role
+function filterPrepQuestions(role) {
+  prepQuestionsState.currentFilter = role;
+
+  // Update tab styles
+  document.querySelectorAll('#adminPrepQuestionsPanel .filter-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.role === role);
+  });
+
+  if (role === 'all') {
+    prepQuestionsState.filteredQuestions = prepQuestionsState.allQuestions;
+  } else {
+    prepQuestionsState.filteredQuestions = prepQuestionsState.allQuestions.filter(q => q.role === role);
+  }
+
+  renderPrepQuestions();
+}
+
+// Render prep questions list
+function renderPrepQuestions() {
+  const container = document.getElementById('prepQuestionsList');
+  const noMessage = document.getElementById('noPrepQuestionsMessage');
+
+  if (!container) return;
+
+  const questions = prepQuestionsState.filteredQuestions;
+
+  if (questions.length === 0) {
+    container.innerHTML = '';
+    if (noMessage) noMessage.style.display = 'block';
+    return;
+  }
+
+  if (noMessage) noMessage.style.display = 'none';
+
+  const roleLabels = {
+    'peneliti': { emoji: '🔬', text: 'Peneliti', color: '#3b82f6' },
+    'aktivis': { emoji: '🌿', text: 'Aktivis', color: '#22c55e' },
+    'pedagang': { emoji: '🛒', text: 'Pedagang', color: '#f59e0b' },
+    'all': { emoji: '🌐', text: 'Universal', color: '#8b5cf6' }
+  };
+
+  container.innerHTML = questions.map(q => {
+    const roleInfo = roleLabels[q.role] || roleLabels['all'];
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px;background:var(--card-bg);border-radius:8px;margin-bottom:8px;border-left:3px solid ${roleInfo.color}">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="background:${roleInfo.color}20;color:${roleInfo.color};font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:99px">${roleInfo.emoji} ${roleInfo.text}</span>
+            <span style="font-size:0.72rem;color:var(--gray)">#${q.order}</span>
+          </div>
+          <div style="font-size:0.9rem;color:var(--dark)">${q.question_text}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn-sm" style="background:var(--green-pale);color:var(--green-deep);padding:4px 10px;font-size:0.72rem" onclick="editPrepQuestion(${q.id})">✏️ Edit</button>
+          <button class="btn-sm" style="background:#fee2e2;color:#dc2626;padding:4px 10px;font-size:0.72rem" onclick="deletePrepQuestion(${q.id})">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Open add question modal
+let editingPrepQuestionId = null;
+
+function openAddPrepQuestion() {
+  editingPrepQuestionId = null;
+  document.getElementById('prepQuestionText').value = '';
+  document.getElementById('prepQuestionRole').value = 'peneliti';
+  document.getElementById('prepQuestionSaveBtn').textContent = '💾 Simpan';
+  openModal('modal-prep-question');
+}
+
+// Edit existing question
+function editPrepQuestion(id) {
+  const question = prepQuestionsState.allQuestions.find(q => q.id == id);
+  if (!question) return;
+
+  editingPrepQuestionId = id;
+  document.getElementById('prepQuestionText').value = question.question_text;
+  document.getElementById('prepQuestionRole').value = question.role;
+  document.getElementById('prepQuestionSaveBtn').textContent = '💾 Update';
+  openModal('modal-prep-question');
+}
+
+// Save refleksi question (add or update)
+async function savePrepQuestion() {
+  const text = document.getElementById('prepQuestionText')?.value?.trim();
+  const role = document.getElementById('prepQuestionRole')?.value;
+
+  if (!text) {
+    showToast('⚠️ Pertanyaan tidak boleh kosong!');
+    return;
+  }
+
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    let url = '/api/refleksi-questions';
+    let method = 'POST';
+    let body = JSON.stringify({ question_text: text, role });
+
+    if (editingPrepQuestionId) {
+      url = `/api/refleksi-questions/${editingPrepQuestionId}`;
+      method = 'PUT';
+      body = JSON.stringify({ question_text: text, role });
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token,
+        'X-Admin-Id': state.user?.id || ''
+      },
+      body
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      closeModal('modal-prep-question');
+      await loadAdminPrepQuestions();
+      showToast(editingPrepQuestionId ? '✅ Pertanyaan refleksi berhasil diperbarui!' : '✅ Pertanyaan refleksi berhasil ditambahkan!');
+    } else {
+      showToast('⚠️ ' + (data.message || 'Gagal menyimpan pertanyaan'));
+    }
+  } catch (e) {
+    console.error('Error saving refleksi question:', e);
+    showToast('⚠️ Gagal menyimpan pertanyaan');
+  }
+}
+
+// Delete refleksi question
+async function deletePrepQuestion(id) {
+  if (!confirm('Yakin ingin menghapus pertanyaan ini?')) return;
+
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const res = await fetch(`/api/refleksi-questions/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token,
+        'X-Admin-Id': state.user?.id || ''
+      }
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      await loadAdminPrepQuestions();
+      showToast('🗑️ Pertanyaan refleksi berhasil dihapus!');
+    } else {
+      showToast('⚠️ ' + (data.message || 'Gagal menghapus pertanyaan'));
+    }
+  } catch (e) {
+    console.error('Error deleting refleksi question:', e);
+    showToast('⚠️ Gagal menghapus pertanyaan');
+  }
+}
+
 // Export functions globally
 window.renderTahap5 = renderTahap5;
 window.submitRefleksi = submitRefleksi;
@@ -382,3 +694,14 @@ window.filterRefleksi = filterRefleksi;
 window.openAnswerModal = openAnswerModal;
 window.sendAnswer = sendAnswer;
 window.deleteReflection = deleteReflection;
+// Admin refleksi questions (CRUD panel)
+window.loadAdminPrepQuestions = loadAdminPrepQuestions;
+// Student refleksi questions (tahap 5)
+window.loadStudentPrepQuestions = loadStudentPrepQuestions;
+window.submitStudentRefleksiAnswers = submitStudentRefleksiAnswers;
+window.filterPrepQuestions = filterPrepQuestions;
+window.openAddPrepQuestion = openAddPrepQuestion;
+window.editPrepQuestion = editPrepQuestion;
+window.savePrepQuestion = savePrepQuestion;
+window.deletePrepQuestion = deletePrepQuestion;
+

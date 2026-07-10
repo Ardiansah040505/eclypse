@@ -134,6 +134,7 @@ const state = {
   teamButtons: { pro: [true, true, true, true, true], con: [true, true, true, true, true] },
   registeredUsers: {},
   openedPacks: {},
+  selectedEcoRole: null,  // Role eco card yang dipilih (untuk pertanyaan pemantik)
   tahap2Completed: false,   // Tahap 2 selesai dibaca
   pemantikAnswers: {},
   pemantikSubmitted: false,
@@ -146,5 +147,35 @@ const state = {
   myGroup: null,
 };
 
+// ══════════════════ LOAD PERSISTED STATE ══════════════════
+function loadPersistedState() {
+  try {
+    const saved = localStorage.getItem('eclypse_persisted_state');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.openedPacks) state.openedPacks = data.openedPacks;
+      if (data.selectedEcoRole) state.selectedEcoRole = data.selectedEcoRole;
+      if (data.pemantikSubmitted) state.pemantikSubmitted = data.pemantikSubmitted;
+      if (data.pemantikAnswers) state.pemantikAnswers = data.pemantikAnswers;
+    }
+  } catch(e) { console.warn('Failed to load persisted state:', e); }
+}
+
+function savePersistedState() {
+  try {
+    const data = {
+      openedPacks: state.openedPacks,
+      selectedEcoRole: state.selectedEcoRole,
+      pemantikSubmitted: state.pemantikSubmitted,
+      pemantikAnswers: state.pemantikAnswers
+    };
+    localStorage.setItem('eclypse_persisted_state', JSON.stringify(data));
+  } catch(e) { console.warn('Failed to save persisted state:', e); }
+}
+
+// Load on startup
+loadPersistedState();
+
 // Export state untuk digunakan di modul lain
 window.state = state;
+window.savePersistedState = savePersistedState;

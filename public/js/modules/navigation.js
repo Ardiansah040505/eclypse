@@ -39,6 +39,8 @@ function goTo(page) {
     } else {
       loadStudentGroupInfo();
     }
+    // Load database questions for both admin and students (with delay to ensure page is rendered)
+    setTimeout(() => loadPrepQuestions(), 100);
   }
   if (page === 'tahap4') {
     renderTahap4();

@@ -15,6 +15,20 @@
 
     {{-- Student View: Input pertanyaan --}}
     <div id="studentRefleksiView">
+
+      {{-- Student: Pertanyaan Pemantik berdasarkan Role --}}
+      <div id="studentPrepQuestionsPanel" style="margin-bottom:1.5rem;background:white;border-radius:var(--radius);padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,0.07);border-left:4px solid var(--green);display:none">
+        <div style="margin-bottom:1rem">
+          <div style="font-weight:800;font-size:1.05rem;color:var(--dark)">📝 Pertanyaan Refleksi</div>
+          <div id="studentPrepRoleLabel" style="font-size:0.82rem;color:var(--gray);margin-top:2px"></div>
+        </div>
+        <div id="studentPrepQuestionsList"></div>
+        <div id="noStudentPrepQuestionsMessage" style="text-align:center;padding:1.5rem;color:var(--gray);display:none">
+          <div style="font-size:1.8rem;margin-bottom:0.5rem">📝</div>
+          <p>Belum ada pertanyaan pemantik dari guru.</p>
+        </div>
+      </div>
+
       <div class="refleksi-card">
         <h3>✍️ Tulis Pertanyaanmu</h3>
         <textarea class="refleksi-textarea" id="refleksiInput" placeholder="Hal apa tentang materi, berita, atau debat yang masih ingin kamu tanyakan kepada guru?"></textarea>
@@ -53,6 +67,31 @@
           <button class="filter-tab" onclick="filterRefleksi('answered')" data-filter="answered">
             ✅ Sudah Dijawab (<span id="filterAnsweredCount">0</span>)
           </button>
+        </div>
+      </div>
+
+      {{-- Admin: Kelola Pertanyaan Pemantik --}}
+      <div id="adminPrepQuestionsPanel" style="margin-top:1.5rem;background:white;border-radius:var(--radius);padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,0.07);border-left:4px solid var(--green)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1rem">
+          <div>
+            <div style="font-weight:800;font-size:1.05rem;color:var(--dark)">📝 Kelola Pertanyaan Pemantik</div>
+            <div style="font-size:0.82rem;color:var(--gray)">Buat pertanyaan berdasarkan role (Peneliti, Aktivis, Pedagang)</div>
+          </div>
+          <button class="btn-sm green" onclick="openAddPrepQuestion()">+ Tambah Pertanyaan</button>
+        </div>
+
+        <div class="filter-tabs" style="margin-bottom:1rem">
+          <button class="filter-tab active" onclick="filterPrepQuestions('all')" data-role="all">📋 Semua</button>
+          <button class="filter-tab" onclick="filterPrepQuestions('peneliti')" data-role="peneliti">🔬 Peneliti</button>
+          <button class="filter-tab" onclick="filterPrepQuestions('aktivis')" data-role="aktivis">🌿 Aktivis</button>
+          <button class="filter-tab" onclick="filterPrepQuestions('pedagang')" data-role="pedagang">🛒 Pedagang</button>
+          <button class="filter-tab" onclick="filterPrepQuestions('all_role')" data-role="all_role">🌐 Universal (Semua)</button>
+        </div>
+
+        <div id="prepQuestionsList"></div>
+        <div id="noPrepQuestionsMessage" style="text-align:center;padding:2rem;color:var(--gray)">
+          <div style="font-size:2rem;margin-bottom:0.5rem">📝</div>
+          <p>Belum ada pertanyaan. Klik "+ Tambah Pertanyaan" untuk membuat.</p>
         </div>
       </div>
     </div>
@@ -101,6 +140,41 @@
       <div style="display:flex;gap:0.5rem;margin-top:1rem">
         <button class="btn-sm green" onclick="sendAnswer()">💾 Kirim Jawaban</button>
         <button class="btn-sm" style="background:var(--gray-200);color:var(--dark)" onclick="closeModal('modal-answer-refleksi')">Batal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{-- Modal: Tambah/Edit Pertanyaan Pemantik (Admin) --}}
+<div class="modal-overlay" id="modal-prep-question">
+  <div class="modal-box" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title">📝 Pertanyaan Pemantik</div>
+      <button class="modal-close" onclick="closeModal('modal-prep-question')">✕</button>
+    </div>
+    <div class="modal-form">
+      <div>
+        <label>Role / Tipe Pertanyaan</label>
+        <select id="prepQuestionRole" style="width:100%;padding:10px;border:2px solid var(--green-pale);border-radius:8px;font-size:0.9rem">
+          <option value="peneliti">🔬 Peneliti</option>
+          <option value="aktivis">🌿 Aktivis</option>
+          <option value="pedagang">🛒 Pedagang</option>
+          <option value="all">🌐 Universal (Semua role)</option>
+        </select>
+        <div style="font-size:0.75rem;color:var(--gray);margin-top:4px">
+          🔬 Peneliti = pertanyaan untuk siswa yang memilih Paket Peneliti<br>
+          🌿 Aktivis = pertanyaan untuk siswa yang memilih Paket Aktivis<br>
+          🛒 Pedagang = pertanyaan untuk siswa yang memilih Paket Pedagang<br>
+          🌐 Universal = pertanyaan untuk semua siswa
+        </div>
+      </div>
+      <div style="margin-top:1rem">
+        <label>Pertanyaan</label>
+        <textarea id="prepQuestionText" placeholder="Tulis pertanyaan di sini..." style="width:100%;min-height:120px;border:2px solid var(--green-pale);border-radius:8px;padding:0.75rem;font-family:'Nunito',sans-serif;font-size:0.9rem;resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem">
+        <button class="btn-sm green" id="prepQuestionSaveBtn" onclick="savePrepQuestion()">💾 Simpan</button>
+        <button class="btn-sm" style="background:var(--gray-200);color:var(--dark)" onclick="closeModal('modal-prep-question')">Batal</button>
       </div>
     </div>
   </div>
