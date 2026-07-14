@@ -159,7 +159,7 @@
         <input type="text" id="debateTopicInput" placeholder="Contoh: Apakah pembatasan industri adalah solusi terbaik..." style="width:100%;padding:10px;border:2px solid var(--green-pale);border-radius:8px;font-size:0.9rem">
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1rem">
         <div>
           <label style="color:#74E0A0;font-weight:700">✅ Tim 1</label>
           <select id="proGroupSelect" style="width:100%;padding:10px;border:2px solid #74E0A0;border-radius:8px;font-size:0.9rem">
@@ -169,6 +169,12 @@
         <div>
           <label style="color:#FF8A80;font-weight:700">❌ Tim 2</label>
           <select id="conGroupSelect" style="width:100%;padding:10px;border:2px solid #FF8A80;border-radius:8px;font-size:0.9rem">
+            <option value="">-- Pilih Kelompok --</option>
+          </select>
+        </div>
+        <div>
+          <label style="color:#fbbf24;font-weight:700">⭐ Tim 3</label>
+          <select id="thirdGroupSelect" style="width:100%;padding:10px;border:2px solid #fbbf24;border-radius:8px;font-size:0.9rem">
             <option value="">-- Pilih Kelompok --</option>
           </select>
         </div>
@@ -199,6 +205,38 @@
       <div style="display:flex;gap:0.5rem">
         <button class="btn-sm yellow" onclick="confirmKancingReduction()">✅ Ya, Kurangi</button>
         <button class="btn-sm" style="background:var(--gray-200);color:var(--dark)" onclick="closeModal('modal-confirm-kancing')">Batal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{-- Modal: Add/Edit Debate Rule (Admin) --}}
+<div class="modal-overlay" id="modal-add-debate-rule">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">📝 Aturan Debat</div>
+      <button class="modal-close" onclick="closeModal('modal-add-debate-rule')">✕</button>
+    </div>
+    <div class="modal-form">
+      <div style="margin-bottom:1rem">
+        <label>Judul Aturan</label>
+        <input type="text" id="ruleTitle" placeholder="Contoh: Larangan Interupsi" style="width:100%;padding:10px;border:2px solid var(--green-pale);border-radius:8px;font-size:0.9rem">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label>Deskripsi</label>
+        <textarea id="ruleDescription" placeholder="Jelaskan aturan secara detail..." style="width:100%;min-height:100px;padding:10px;border:2px solid var(--green-pale);border-radius:8px;font-size:0.9rem;resize:vertical;font-family:'Nunito',sans-serif"></textarea>
+      </div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:1rem">
+        <button class="btn-sm green" onclick="saveDebateRule()">💾 Simpan</button>
+        <button class="btn-sm" style="background:var(--gray-200);color:var(--dark)" onclick="closeModal('modal-add-debate-rule')">Batal</button>
+      </div>
+
+      {{-- List of existing rules --}}
+      <div style="margin-top:1.5rem;border-top:1px solid var(--green-pale);padding-top:1rem">
+        <div style="font-weight:700;margin-bottom:0.75rem;font-size:0.9rem">📋 Aturan yang sudah ada:</div>
+        <div id="debateRulesList" style="max-height:250px;overflow-y:auto">
+          {{-- Will be loaded by JS --}}
+        </div>
       </div>
     </div>
   </div>

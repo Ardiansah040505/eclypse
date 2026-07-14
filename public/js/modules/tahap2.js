@@ -75,7 +75,32 @@ function renderTahap2() {
   const grid = document.getElementById('ecoPacksGrid');
   if (!grid) return;
 
-  grid.innerHTML = ecoPacks.map(pack => {
+  // Check student's assigned role
+  const studentRole = state.selectedEcoRole || state._studentRole?.id;
+
+  // If student has a role, only show that specific pack
+  const visiblePacks = studentRole
+    ? ecoPacks.filter(pack => pack.id === studentRole)
+    : ecoPacks;
+
+  // Show message if role is assigned
+  const roleMessage = document.getElementById('roleAssignedMessage');
+  if (studentRole && visiblePacks.length === 1) {
+    const roleName = visiblePacks[0].name;
+    if (roleMessage) {
+      roleMessage.style.display = 'block';
+      roleMessage.innerHTML = `🎯 <strong>Role kamu:</strong> ${roleName} — Hanya paket ini yang bisa kamu buka!`;
+    }
+  } else if (!studentRole) {
+    if (roleMessage) {
+      roleMessage.style.display = 'block';
+      roleMessage.innerHTML = '⚠️ Role belum ditentukan. Selesaikan Tahap 1 terlebih dahulu!';
+    }
+  } else {
+    if (roleMessage) roleMessage.style.display = 'none';
+  }
+
+  grid.innerHTML = visiblePacks.map(pack => {
     const isOpened = !!state.openedPacks[pack.id];
     const cardCount = state.ecoCards.filter(c => c.type === pack.id).length;
     return `
@@ -94,6 +119,16 @@ function renderTahap2() {
 
 // ══════════════════ OPEN ECO PACK ══════════════════
 function openEcoPack(packId) {
+  // Cek apakah siswa sudah punya role yang ditentukan
+  const studentRole = state.selectedEcoRole || state._studentRole?.id;
+
+  // Jika punya role dari spin wheel, hanya bisa buka paket sesuai role
+  if (studentRole && packId !== studentRole) {
+    const roleName = ecoPacks.find(p => p.id === studentRole)?.name || studentRole;
+    showToast(`⚠️ Role kamu adalah ${roleName}! Hanya paket itu yang bisa kamu buka!`);
+    return;
+  }
+
   // Cek apakah sudah pernah buka paket sebelumnya
   const alreadyOpened = Object.keys(state.openedPacks || {}).some(id => state.openedPacks[id]);
   const isFirstOpen = !alreadyOpened;

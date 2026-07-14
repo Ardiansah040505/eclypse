@@ -40,6 +40,7 @@
 }
 .side-pro h4 { color: #74E0A0; }
 .side-con h4 { color: #FF8A80; }
+.side-netral h4 { color: #fbbf24; }
 .speaker-item {
   display: flex;
   align-items: center;

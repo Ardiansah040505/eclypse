@@ -339,6 +339,11 @@ async function saveNewsAnswer() {
 
       updateProgressBar();
 
+      // Check and trigger spin wheel after completing all news
+      setTimeout(() => {
+        checkAndTriggerSpinWheel();
+      }, 500);
+
       // Show success message and go back to news list
       if (data.data.is_completed) {
         showToast('🎉 Semua soal dijawab! Tahap 1 selesai!', 3000);

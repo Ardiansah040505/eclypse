@@ -116,3 +116,36 @@
   color: var(--yellow);
   white-space: nowrap;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SPIN WHEEL ANIMATIONS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.spin-wheel-winning {
+  animation: bounce 0.5s ease-in-out 3;
+}

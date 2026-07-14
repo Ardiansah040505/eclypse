@@ -42,6 +42,9 @@
 {{-- ═══════════════════════ ALL MODALS ═══════════════════════ --}}
 @include('components.modal')
 
+{{-- ═══════════════════════ SPIN WHEEL MODAL ═══════════════════════ --}}
+@include('components.spin-wheel')
+
 {{-- Toast --}}
 <div class="toast" id="toast">✅ Berhasil!</div>
 

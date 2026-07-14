@@ -188,6 +188,17 @@ async function loginSuccess() {
 
     }
 
+    // Load eco_role from user data (saved from spin wheel)
+    if (state.user.eco_role) {
+        state.selectedEcoRole = state.user.eco_role;
+        state._studentRole = {
+            id: state.user.eco_role,
+            name: getRoleName(state.user.eco_role)
+        };
+        // Also save to localStorage as backup
+        localStorage.setItem('eclypse_role_' + state.user.id, JSON.stringify(state._studentRole));
+    }
+
     document.getElementById('mainNavbar').style.display='flex';
 
     // Navigasi ke home DULU agar user tidak melihat blank screen
@@ -206,6 +217,16 @@ async function loginSuccess() {
 
     startHeartbeat();
 
+}
+
+// Helper function to get role name
+function getRoleName(roleId) {
+    const roles = {
+        'peneliti': '🔬 Peneliti',
+        'aktivis': '🌿 Aktivis',
+        'pedagang': '🛒 Pedagang'
+    };
+    return roles[roleId] || roleId;
 }
 
 // ══════════════════ CLEANUP STALE ONLINE DATA ══════════════════
@@ -257,6 +278,9 @@ async function doLogout() {
   document.getElementById('mainNavbar').style.display = 'none';
   goTo('login');
 }
+
+// Export helper functions
+window.getRoleName = getRoleName;
 
 // ══════════════════ ENTER KEY HANDLERS ══════════════════
 document.addEventListener('DOMContentLoaded', function() {

@@ -6,7 +6,7 @@
 let debateState = {
   session: null,
   arguments: [],
-  kancingStatus: { pro: 5, con: 5 },
+  kancingStatus: { pro: 5, con: 5, netral: 5 },
   pollingInterval: null
 };
 
@@ -20,6 +20,15 @@ async function renderTahap4() {
   if (adminBar4) {
     adminBar4.style.display = state.isAdmin ? 'flex' : 'none';
   }
+
+  // Show manage rules button for admin
+  const btnManageRules = document.getElementById('btnManageRules');
+  if (btnManageRules) {
+    btnManageRules.style.display = state.isAdmin ? 'inline-block' : 'none';
+  }
+
+  // Load rules from database
+  await loadDebateRulesForDisplay();
 
   // Fetch current debate session
   try {
@@ -84,8 +93,11 @@ function showDebateBoard(session) {
   // Update CON group
   updateGroupDisplay('con', session.con_group);
 
+  // Update THIRD group
+  updateGroupDisplay('netral', session.third_group);
+
   // Update kancing status
-  debateState.kancingStatus = session.kancing_status || { pro: 5, con: 5 };
+  debateState.kancingStatus = session.kancing_status || { pro: 5, con: 5, netral: 5 };
   renderKancingButtons();
 }
 
@@ -144,12 +156,16 @@ function updateGroupDisplay(side, group) {
 function renderKancingButtons() {
   const proTarget = document.getElementById('proButtons');
   const conTarget = document.getElementById('conButtons');
+  const thirdTarget = document.getElementById('thirdButtons');
 
   if (proTarget) {
     proTarget.innerHTML = generateKancingHTML(debateState.kancingStatus.pro, 'pro');
   }
   if (conTarget) {
     conTarget.innerHTML = generateKancingHTML(debateState.kancingStatus.con, 'con');
+  }
+  if (thirdTarget) {
+    thirdTarget.innerHTML = generateKancingHTML(debateState.kancingStatus.netral, 'netral');
   }
 }
 
@@ -174,13 +190,16 @@ function renderKancingControls() {
 
   const proCount = debateState.session?.pro_group?.kancing_count ?? 5;
   const conCount = debateState.session?.con_group?.kancing_count ?? 5;
+  const thirdCount = debateState.session?.third_group?.kancing_count ?? 5;
   const proName = debateState.session?.pro_group?.name || 'Tim 1';
   const conName = debateState.session?.con_group?.name || 'Tim 2';
+  const thirdName = debateState.session?.third_group?.name || 'Tim 3';
   const proId = debateState.session?.pro_group?.id ?? null;
   const conId = debateState.session?.con_group?.id ?? null;
+  const thirdId = debateState.session?.third_group?.id ?? null;
 
   // Jika belum ada group yang di-assign, tampilkan pesan + tombol akhiri
-  if (!proId && !conId) {
+  if (!proId && !conId && !thirdId) {
     kc.innerHTML = `<div style="padding:12px;font-size:0.85rem;color:var(--gray);text-align:center">
       ⚠️ Sesi ini tidak memiliki kelompok.<br>
       <span style="font-size:0.78rem;opacity:0.7">Akhiri sesi ini lalu buat sesi baru dengan memilih kelompok.</span><br>
@@ -188,22 +207,39 @@ function renderKancingControls() {
     </div>`;
     return;
   }
+
   kc.innerHTML = `
-    <div style="padding:12px 0;border-bottom:1px solid var(--green-pale)">
-      <div style="font-size:.9rem;font-weight:700;color:#74E0A0;margin-bottom:8px">✅ ${proName}</div>
-      <div style="margin-bottom:8px">Kancing: <strong>${proCount}</strong></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${generateAdminKancingButtons(proCount, 'pro', proId)}
-      </div>
-      ${proId ? `<button class="btn-sm yellow" style="margin-top:8px" onclick="resetKancing('${proId}')">🔄 Reset ke 5</button>` : ''}
-    </div>
-    <div style="padding:12px 0">
-      <div style="font-size:.9rem;font-weight:700;color:#FF8A80;margin-bottom:8px">❌ ${conName}</div>
-      <div style="margin-bottom:8px">Kancing: <strong>${conCount}</strong></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${generateAdminKancingButtons(conCount, 'con', conId)}
-      </div>
-      ${conId ? `<button class="btn-sm yellow" style="margin-top:8px" onclick="resetKancing('${conId}')">🔄 Reset ke 5</button>` : ''}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      ${proId ? `
+        <div style="padding:12px;background:rgba(116,224,160,0.1);border-radius:8px;border:1px solid #74E0A0">
+          <div style="font-size:.9rem;font-weight:700;color:#74E0A0;margin-bottom:8px">✅ ${proName}</div>
+          <div style="margin-bottom:8px">Kancing: <strong>${proCount}</strong></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${generateAdminKancingButtons(proCount, 'pro', proId)}
+          </div>
+          <button class="btn-sm yellow" style="margin-top:8px" onclick="resetKancing('${proId}')">🔄 Reset ke 5</button>
+        </div>
+      ` : ''}
+      ${conId ? `
+        <div style="padding:12px;background:rgba(255,138,128,0.1);border-radius:8px;border:1px solid #FF8A80">
+          <div style="font-size:.9rem;font-weight:700;color:#FF8A80;margin-bottom:8px">❌ ${conName}</div>
+          <div style="margin-bottom:8px">Kancing: <strong>${conCount}</strong></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${generateAdminKancingButtons(conCount, 'con', conId)}
+          </div>
+          <button class="btn-sm yellow" style="margin-top:8px" onclick="resetKancing('${conId}')">🔄 Reset ke 5</button>
+        </div>
+      ` : ''}
+      ${thirdId ? `
+        <div style="padding:12px;background:rgba(255,191,36,0.1);border-radius:8px;border:1px solid #fbbf24">
+          <div style="font-size:.9rem;font-weight:700;color:#fbbf24;margin-bottom:8px">⭐ ${thirdName}</div>
+          <div style="margin-bottom:8px">Kancing: <strong>${thirdCount}</strong></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${generateAdminKancingButtons(thirdCount, 'netral', thirdId)}
+          </div>
+          <button class="btn-sm yellow" style="margin-top:8px" onclick="resetKancing('${thirdId}')">🔄 Reset ke 5</button>
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -457,11 +493,19 @@ async function loadGroupsForSetup() {
           data.data.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name} (${g.members?.length || 0} anggota)</option>`).join('');
       }
 
+      if (thirdSelect) {
+        thirdSelect.innerHTML = '<option value="">-- Pilih Kelompok --</option>' +
+          data.data.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name} (${g.members?.length || 0} anggota)</option>`).join('');
+      }
+
       if (debateState.session?.pro_group?.id && proSelect) {
         proSelect.value = debateState.session.pro_group.id;
       }
       if (debateState.session?.con_group?.id && conSelect) {
         conSelect.value = debateState.session.con_group.id;
+      }
+      if (debateState.session?.third_group?.id && thirdSelect) {
+        thirdSelect.value = debateState.session.third_group.id;
       }
 
       updateSessionStatusInfo();
@@ -487,7 +531,7 @@ function updateSessionStatusInfo() {
       <strong>${statusLabels[debateState.session.status] || debateState.session.status}</strong><br>
       ${debateState.session.topic ? 'Topik: ' + debateState.session.topic + '<br>' : ''}
       Tim 1: ${debateState.session.pro_group?.name || 'Belum dipilih'} ·
-      Tim 2: ${debateState.session.con_group?.name || 'Belum dipilih'}
+      Tim 2: ${debateState.session.con_group?.name || 'Belum dipilih'}${debateState.session.third_group ? ' · Tim 3: ' + debateState.session.third_group.name : ''}
     `;
   } else {
     info.style.display = 'none';
@@ -498,6 +542,7 @@ async function startDebateSession() {
   const topic = document.getElementById('debateTopicInput')?.value?.trim();
   const proGroupId = document.getElementById('proGroupSelect')?.value;
   const conGroupId = document.getElementById('conGroupSelect')?.value;
+  const thirdGroupId = document.getElementById('thirdGroupSelect')?.value;
 
   if (!topic) {
     showToast('⚠️ Masukkan topik debat!');
@@ -514,6 +559,12 @@ async function startDebateSession() {
     return;
   }
 
+  // Third group is optional
+  // if (!thirdGroupId) {
+  //   showToast('⚠️ Pilih kelompok untuk Tim 3!');
+  //   return;
+  // }
+
   try {
     const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
@@ -521,9 +572,9 @@ async function startDebateSession() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        
+
       },
-      body: JSON.stringify({ topic, pro_group_id: proGroupId || null, con_group_id: conGroupId || null })
+      body: JSON.stringify({ topic, pro_group_id: proGroupId || null, con_group_id: conGroupId || null, third_group_id: thirdGroupId || null })
     });
     let data = await res.json();
 
@@ -602,6 +653,157 @@ function resetTeamButtons(side) {
   // Now handled by resetKancing
 }
 
+// ══════════════════ DEBATE RULES (ADMIN) ══════════════════
+let editingRuleId = null;
+
+function openAddDebateRule() {
+  editingRuleId = null;
+  document.getElementById('ruleTitle').value = '';
+  document.getElementById('ruleDescription').value = '';
+  loadDebateRules();
+  openModal('modal-add-debate-rule');
+}
+
+async function loadDebateRulesForDisplay() {
+  const container = document.getElementById('debateRulesDisplay');
+  if (!container) return;
+
+  try {
+    const res = await fetch('/api/admin/debate-rules');
+    const data = await res.json();
+
+    if (data.success && data.data && data.data.length > 0) {
+      container.innerHTML = data.data.map((rule, i) => `
+        <div class="rule-item" style="padding:8px 0">
+          <div class="rule-num">${rule.order || (i + 1)}</div>
+          <div class="rule-text"><strong>${rule.title}:</strong> ${rule.description}</div>
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<p style="font-size:0.85rem;color:var(--gray)">Belum ada aturan.</p>';
+    }
+  } catch (e) {
+    console.error('Error loading debate rules:', e);
+  }
+}
+
+async function loadDebateRules() {
+  try {
+    const res = await fetch('/api/admin/debate-rules');
+    const data = await res.json();
+
+    if (data.success) {
+      renderDebateRulesList(data.data);
+    }
+  } catch (e) {
+    console.error('Error loading debate rules:', e);
+  }
+}
+
+function renderDebateRulesList(rules) {
+  const container = document.getElementById('debateRulesList');
+  if (!container) return;
+
+  if (!rules || rules.length === 0) {
+    container.innerHTML = '<p style="font-size:0.85rem;color:var(--gray);text-align:center;padding:1rem">Belum ada aturan.</p>';
+    return;
+  }
+
+  container.innerHTML = rules.map(rule => `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:10px;background:var(--card-bg);border-radius:8px;margin-bottom:8px;border-left:3px solid var(--green)">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:0.85rem">${rule.title}</div>
+        <div style="font-size:0.8rem;color:var(--gray);margin-top:4px">${rule.description}</div>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button class="btn-sm" style="background:var(--green-pale);color:var(--green-deep);padding:4px 8px;font-size:0.72rem" onclick="editDebateRule(${rule.id}, '${rule.title.replace(/'/g, "\\'")}', '${rule.description.replace(/'/g, "\\'")}')">✏️</button>
+        <button class="btn-sm" style="background:#fee2e2;color:#dc2626;padding:4px 8px;font-size:0.72rem" onclick="deleteDebateRule(${rule.id})">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function editDebateRule(id, title, description) {
+  editingRuleId = id;
+  document.getElementById('ruleTitle').value = title;
+  document.getElementById('ruleDescription').value = description;
+}
+
+async function saveDebateRule() {
+  const title = document.getElementById('ruleTitle')?.value?.trim();
+  const description = document.getElementById('ruleDescription')?.value?.trim();
+
+  if (!title || !description) {
+    showToast('⚠️ Judul dan deskripsi harus diisi!');
+    return;
+  }
+
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    let url = '/api/admin/debate-rules';
+    let method = 'POST';
+    let body = JSON.stringify({ title, description });
+
+    if (editingRuleId) {
+      url = `/api/admin/debate-rules/${editingRuleId}`;
+      method = 'PUT';
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token
+      },
+      body
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      showToast(editingRuleId ? '✅ Aturan berhasil diperbarui!' : '✅ Aturan berhasil ditambahkan!');
+      document.getElementById('ruleTitle').value = '';
+      document.getElementById('ruleDescription').value = '';
+      editingRuleId = null;
+      loadDebateRules();
+      loadDebateRulesForDisplay();
+    } else {
+      showToast('⚠️ ' + (data.message || 'Gagal menyimpan'));
+    }
+  } catch (e) {
+    console.error('Error saving debate rule:', e);
+    showToast('⚠️ Gagal menyimpan aturan');
+  }
+}
+
+async function deleteDebateRule(id) {
+  if (!confirm('Yakin ingin menghapus aturan ini?')) return;
+
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const res = await fetch(`/api/admin/debate-rules/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token
+      }
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      showToast('🗑️ Aturan berhasil dihapus!');
+      loadDebateRules();
+      loadDebateRulesForDisplay();
+    } else {
+      showToast('⚠️ Gagal menghapus');
+    }
+  } catch (e) {
+    console.error('Error deleting debate rule:', e);
+    showToast('⚠️ Gagal menghapus aturan');
+  }
+}
+
 // Export functions globally
 window.renderTahap4 = renderTahap4;
 window.renderTeamButtons = renderTeamButtons;
@@ -618,3 +820,10 @@ window.loadGroupsForSetup = loadGroupsForSetup;
 window.startDebateSession = startDebateSession;
 window.finishDebateSession = finishDebateSession;
 window.debateState = debateState;
+// Debate rules
+window.openAddDebateRule = openAddDebateRule;
+window.loadDebateRules = loadDebateRules;
+window.loadDebateRulesForDisplay = loadDebateRulesForDisplay;
+window.editDebateRule = editDebateRule;
+window.saveDebateRule = saveDebateRule;
+window.deleteDebateRule = deleteDebateRule;

@@ -118,7 +118,6 @@ async function sendHeartbeat() {
   // Send to server only if we have a student_id
   if (!state.user?.id) return;
 
-  const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
   try {
     // Use sendBeacon for non-blocking heartbeat or short timeout
     const res = await Promise.race([
@@ -126,7 +125,7 @@ async function sendHeartbeat() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          
+
         },
         body: JSON.stringify({ student_id: state.user?.id })
       }),
@@ -288,3 +287,47 @@ function downloadRecapCSV() {
 // Export functions globally
 window.downloadRecapCSV = downloadRecapCSV;
 window.updateProgressBar = updateProgressBar;
+
+// ══════════════════════════════════════════════════════════════════════════
+// SPIN WHEEL - Check and trigger after news completion
+// ══════════════════════════════════════════════════════════════════════════
+
+async function checkAndTriggerSpinWheel() {
+  // Check if user is student and hasn't spun yet
+  if (!state.user || state.isAdmin) return;
+  if (state.hasSpun) return;
+
+  // Check if all news are completed
+  if (!state.newsProgress || Object.keys(state.newsProgress).length === 0) return;
+  const totalNews = state.news?.length || 0;
+  if (totalNews === 0) return;
+
+  let completedNews = 0;
+  for (const newsId of Object.keys(state.newsProgress)) {
+    if (state.newsProgress[newsId].is_completed) {
+      completedNews++;
+    }
+  }
+
+  // Only trigger if ALL news are completed
+  if (completedNews < totalNews) return;
+
+  // Check if user already has a role assigned
+  const existingRole = localStorage.getItem('eclypse_role_' + state.user?.id);
+  if (existingRole) {
+    try {
+      state._studentRole = JSON.parse(existingRole);
+      state.selectedEcoRole = state._studentRole.id;
+      return; // Already spun
+    } catch (e) {
+      // Invalid data, continue to spin
+    }
+  }
+
+  // Open spin wheel to assign role
+  openSpinWheel();
+  state.hasSpun = true;
+}
+
+// Export
+window.checkAndTriggerSpinWheel = checkAndTriggerSpinWheel;

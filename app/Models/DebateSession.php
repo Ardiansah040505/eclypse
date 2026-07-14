@@ -12,7 +12,8 @@ class DebateSession extends Model
         'topic',
         'status',
         'pro_group_id',
-        'con_group_id'
+        'con_group_id',
+        'third_group_id'
     ];
 
     protected $casts = [
@@ -33,6 +34,26 @@ class DebateSession extends Model
     public function conGroup(): BelongsTo
     {
         return $this->belongsTo(DebateGroup::class, 'con_group_id');
+    }
+
+    /**
+     * Get the THIRD debate group
+     */
+    public function thirdGroup(): BelongsTo
+    {
+        return $this->belongsTo(DebateGroup::class, 'third_group_id');
+    }
+
+    /**
+     * Get all groups for this session
+     */
+    public function getAllGroups(): array
+    {
+        return array_filter([
+            $this->proGroup,
+            $this->conGroup,
+            $this->thirdGroup
+        ]);
     }
 
     /**
@@ -90,10 +111,11 @@ class DebateSession extends Model
     /**
      * Set debate groups
      */
-    public function setGroups(?DebateGroup $proGroup, ?DebateGroup $conGroup): void
+    public function setGroups(?DebateGroup $proGroup, ?DebateGroup $conGroup, ?DebateGroup $thirdGroup = null): void
     {
         $this->pro_group_id = $proGroup?->id;
         $this->con_group_id = $conGroup?->id;
+        $this->third_group_id = $thirdGroup?->id;
         $this->save();
     }
 
@@ -106,13 +128,16 @@ class DebateSession extends Model
     }
 
     /**
-     * Get current kancing status
+     * Get current kancing status (supports 3 groups)
      */
     public function getKancingStatus(): array
     {
-        return [
-            'pro' => [
-                'group' => $this->proGroup ? [
+        $groups = [];
+
+        // Add PRO group
+        if ($this->proGroup) {
+            $groups['pro'] = [
+                'group' => [
                     'id' => $this->proGroup->id,
                     'name' => $this->proGroup->name,
                     'icon' => $this->proGroup->icon,
@@ -121,11 +146,15 @@ class DebateSession extends Model
                         'id' => $m->id,
                         'name' => $m->name
                     ])
-                ] : null,
-                'kancing_count' => $this->proGroup?->kancing_count ?? 5
-            ],
-            'con' => [
-                'group' => $this->conGroup ? [
+                ],
+                'kancing_count' => $this->proGroup->kancing_count
+            ];
+        }
+
+        // Add CON group
+        if ($this->conGroup) {
+            $groups['con'] = [
+                'group' => [
                     'id' => $this->conGroup->id,
                     'name' => $this->conGroup->name,
                     'icon' => $this->conGroup->icon,
@@ -134,9 +163,28 @@ class DebateSession extends Model
                         'id' => $m->id,
                         'name' => $m->name
                     ])
-                ] : null,
-                'kancing_count' => $this->conGroup?->kancing_count ?? 5
-            ]
-        ];
+                ],
+                'kancing_count' => $this->conGroup->kancing_count
+            ];
+        }
+
+        // Add THIRD group
+        if ($this->thirdGroup) {
+            $groups['netral'] = [
+                'group' => [
+                    'id' => $this->thirdGroup->id,
+                    'name' => $this->thirdGroup->name,
+                    'icon' => $this->thirdGroup->icon,
+                    'kancing_count' => $this->thirdGroup->kancing_count,
+                    'members' => $this->thirdGroup->members->map(fn($m) => [
+                        'id' => $m->id,
+                        'name' => $m->name
+                    ])
+                ],
+                'kancing_count' => $this->thirdGroup->kancing_count
+            ];
+        }
+
+        return $groups;
     }
 }

@@ -25,6 +25,9 @@ Route::delete('refleksi-questions/{id}', [RefleksiQuestionController::class, 'de
 
 // Student Refleksi Answer
 Route::post('student/refleksi-answer', [RefleksiAnswerController::class, 'save']);
+
+// Student Eco Role (Tahap 2)
+Route::post('student/eco-role', [\App\Http\Controllers\Student\EcoRoleController::class, 'save']);
 Route::post('login', [StudentAuthController::class, 'login']);
 Route::post('admin/login', [AdminAuthController::class, 'login']);
 
@@ -62,6 +65,7 @@ Route::put('groups/{id}', [GroupController::class, 'update']);
 Route::delete('groups/{id}', [GroupController::class, 'destroy']);
 Route::get('students', [GroupController::class, 'students']);
 Route::post('groups/assign', [GroupController::class, 'assign']);
+Route::post('groups/assign-spin', [GroupController::class, 'assignSpin']);
 Route::delete('groups/student/{id}', [GroupController::class, 'removeStudent']);
 Route::post('heartbeat', [GroupController::class, 'heartbeat']);
 Route::post('logout', [GroupController::class, 'logout']);
@@ -97,6 +101,14 @@ Route::prefix('reflection')->group(function () {
     Route::get('/unanswered', [ReflectionController::class, 'unanswered']);
     Route::get('/counts', [ReflectionController::class, 'counts']);
     Route::post('/{id}/answer', [ReflectionController::class, 'answer']);
+});
+
+// Routes Admin - Debate Rules
+Route::prefix('admin')->group(function () {
+    Route::get('/debate-rules', [\App\Http\Controllers\Admin\DebateRuleController::class, 'index']);
+    Route::post('/debate-rules', [\App\Http\Controllers\Admin\DebateRuleController::class, 'store']);
+    Route::put('/debate-rules/{id}', [\App\Http\Controllers\Admin\DebateRuleController::class, 'update']);
+    Route::delete('/debate-rules/{id}', [\App\Http\Controllers\Admin\DebateRuleController::class, 'destroy']);
 });
 
 // Admin Download

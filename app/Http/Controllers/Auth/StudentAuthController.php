@@ -47,7 +47,14 @@ class StudentAuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'nis' => $user->nis,
+                'school' => $user->school,
+                'role' => $user->role,
+                'eco_role' => $user->eco_role,
+            ],
             'token' => $token,
         ]);
     }

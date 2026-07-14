@@ -30,7 +30,8 @@
     </div>
     <div class="eco-section">
       <div class="section-title">🃏 Eco Climate Cards <span style="font-size:0.78rem;font-weight:600;color:var(--gray);margin-left:8px">3 paket · 6–7 kartu per paket</span></div>
-      <p style="font-size:0.85rem;color:var(--gray);margin-bottom:1rem">Buka setiap paket sesuai peranmu dan pelajari data faktual yang akan memperkuat argumenmu di debat! 🎴</p>
+      <div id="roleAssignedMessage" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;background:#fef3c7;border-radius:8px;font-size:0.85rem;color:#92400e"></div>
+      <p style="font-size:0.85rem;color:var(--gray);margin-bottom:1rem">Buka paket sesuai role yang kamu dapat dan pelajari data faktual yang akan memperkuat argumenmu di debat! 🎴</p>
       <div id="ecoPacksView">
         <div class="eco-packs" id="ecoPacksGrid"><!-- diisi JS --></div>
       </div>

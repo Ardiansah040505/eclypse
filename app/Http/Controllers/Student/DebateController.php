@@ -48,14 +48,15 @@ class DebateController extends Controller
     }
 
     /**
-     * Create or update debate session (admin only)
+     * Create or update debate session (admin only) - supports 3 groups
      */
     public function createSession(Request $request)
     {
         $request->validate([
             'topic' => 'required|string|max:500',
             'pro_group_id' => 'nullable|exists:debate_groups,id',
-            'con_group_id' => 'nullable|exists:debate_groups,id'
+            'con_group_id' => 'nullable|exists:debate_groups,id',
+            'third_group_id' => 'nullable|exists:debate_groups,id'
         ]);
 
         // End any active sessions first
@@ -66,12 +67,13 @@ class DebateController extends Controller
             'topic' => $request->topic,
             'status' => 'waiting',
             'pro_group_id' => $request->pro_group_id,
-            'con_group_id' => $request->con_group_id
+            'con_group_id' => $request->con_group_id,
+            'third_group_id' => $request->third_group_id
         ]);
 
         return response()->json([
             'success' => true,
-            'data' => $this->formatSession($session->fresh(['proGroup.members', 'conGroup.members']))
+            'data' => $this->formatSession($session->fresh(['proGroup.members', 'conGroup.members', 'thirdGroup.members']))
         ]);
     }
 
@@ -114,13 +116,14 @@ class DebateController extends Controller
     }
 
     /**
-     * Set debate groups for a session (admin only)
+     * Set debate groups for a session (admin only) - supports 3 groups
      */
     public function setGroups(Request $request, $sessionId)
     {
         $request->validate([
             'pro_group_id' => 'nullable|exists:debate_groups,id',
-            'con_group_id' => 'nullable|exists:debate_groups,id'
+            'con_group_id' => 'nullable|exists:debate_groups,id',
+            'third_group_id' => 'nullable|exists:debate_groups,id'
         ]);
 
         $session = DebateSession::findOrFail($sessionId);
@@ -134,6 +137,7 @@ class DebateController extends Controller
 
         $session->pro_group_id = $request->pro_group_id;
         $session->con_group_id = $request->con_group_id;
+        $session->third_group_id = $request->third_group_id;
         $session->save();
 
         // Reset kancing for the new groups
@@ -143,10 +147,13 @@ class DebateController extends Controller
         if ($request->con_group_id) {
             DebateGroup::find($request->con_group_id)?->resetKancing($session->id);
         }
+        if ($request->third_group_id) {
+            DebateGroup::find($request->third_group_id)?->resetKancing($session->id);
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $this->formatSession($session->fresh(['proGroup.members', 'conGroup.members']))
+            'data' => $this->formatSession($session->fresh(['proGroup.members', 'conGroup.members', 'thirdGroup.members']))
         ]);
     }
 
@@ -386,7 +393,7 @@ class DebateController extends Controller
     }
 
     /**
-     * Helper: Format session data
+     * Helper: Format session data (supports 3 groups)
      */
     private function formatSession(DebateSession $session): array
     {
@@ -415,18 +422,35 @@ class DebateController extends Controller
                     'name' => $m->name
                 ])
             ] : null,
+            'third_group' => $session->thirdGroup ? [
+                'id' => $session->thirdGroup->id,
+                'name' => $session->thirdGroup->name,
+                'icon' => $session->thirdGroup->icon,
+                'kancing_count' => $session->thirdGroup->kancing_count,
+                'members' => $session->thirdGroup->members->map(fn($m) => [
+                    'id' => $m->id,
+                    'name' => $m->name
+                ])
+            ] : null,
             'kancing_status' => $this->formatKancingStatus($session)
         ];
     }
 
     /**
-     * Helper: Format kancing status
+     * Helper: Format kancing status (supports 3 groups)
      */
     private function formatKancingStatus(DebateSession $session): array
     {
-        return [
-            'pro' => $session->proGroup?->kancing_count ?? 5,
-            'con' => $session->conGroup?->kancing_count ?? 5
-        ];
+        $status = [];
+        if ($session->proGroup) {
+            $status['pro'] = $session->proGroup->kancing_count;
+        }
+        if ($session->conGroup) {
+            $status['con'] = $session->conGroup->kancing_count;
+        }
+        if ($session->thirdGroup) {
+            $status['netral'] = $session->thirdGroup->kancing_count;
+        }
+        return $status;
     }
 }

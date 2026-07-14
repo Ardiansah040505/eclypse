@@ -196,4 +196,183 @@ class GroupController extends Controller
 
         return response()->json(['success' => false]);
     }
+
+    /**
+     * Assign student to group from spin wheel
+     */
+    public function assignSpin(\Illuminate\Http\Request $r)
+    {
+        $r->validate([
+            'student_id' => 'required',
+            'group_id' => 'required'
+        ]);
+
+        // Check if student already in a group from spin
+        $existing = DB::table('spin_group_assignments')
+            ->where('student_id', $r->student_id)
+            ->first();
+
+        if ($existing) {
+            // Update
+            DB::table('spin_group_assignments')
+                ->where('student_id', $r->student_id)
+                ->update([
+                    'group_id' => $r->group_id,
+                    'group_name' => $r->group_name,
+                    'updated_at' => now()
+                ]);
+        } else {
+            // Insert
+            DB::table('spin_group_assignments')->insert([
+                'student_id' => $r->student_id,
+                'group_id' => $r->group_id,
+                'group_name' => $r->group_name,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kelompok berhasil disimpan!'
+        ]);
+    }
+
+    /**
+     * Auto-balance students across 3 debate teams based on eco_role
+     * Distributes researchers, activists, and merchants evenly
+     */
+    public function autoBalance(\Illuminate\Http\Request $r)
+    {
+        // Get all students with their eco_role
+        $students = DB::table('users')
+            ->where('role', 'student')
+            ->whereNotNull('eco_role')
+            ->get();
+
+        if ($students->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Belum ada siswa dengan eco_role. Siswa perlu memilih eco card di Tahap 2 dulu.'
+            ], 400);
+        }
+
+        // Group students by eco_role
+        $byRole = [
+            'peneliti' => [],
+            'aktivis' => [],
+            'pedagang' => []
+        ];
+
+        foreach ($students as $student) {
+            $role = $student->eco_role;
+            if (isset($byRole[$role])) {
+                $byRole[$role][] = $student;
+            } else {
+                // Unknown role, put in aktivis as fallback
+                $byRole['aktivis'][] = $student;
+            }
+        }
+
+        // Calculate target per team
+        $roles = ['peneliti', 'aktivis', 'pedagang'];
+        $teams = ['team_a', 'team_b', 'team_c'];
+        $teamNames = [
+            'team_a' => 'Tim A - Hijau',
+            'team_b' => 'Tim B - Merah',
+            'team_c' => 'Tim C - Biru'
+        ];
+
+        // Create teams if they don't exist
+        foreach ($teams as $i => $team) {
+            $existing = DB::table('debate_groups')->where('name', $teamNames[$team])->first();
+            if (!$existing) {
+                $icons = ['🌿', '🔥', '💧'];
+                DB::table('debate_groups')->insert([
+                    'name' => $teamNames[$team],
+                    'side' => 'neutral',
+                    'icon' => $icons[$i],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+        }
+
+        // Get team IDs
+        $teamIds = [];
+        foreach ($teams as $team) {
+            $group = DB::table('debate_groups')->where('name', $teamNames[$team])->first();
+            $teamIds[$team] = $group->id;
+        }
+
+        // Clear existing assignments
+        foreach ($students as $student) {
+            DB::table('group_members')->where('student_id', $student->id)->delete();
+            DB::table('users')->where('id', $student->id)->update(['debate_team' => null]);
+        }
+
+        // Distribute students evenly across teams
+        // Using round-robin for each role to ensure balance
+        $teamCount = array_fill_keys($teams, ['peneliti' => 0, 'aktivis' => 0, 'pedagang' => 0, 'total' => 0]);
+        $assignments = [];
+
+        foreach ($roles as $role) {
+            $roleStudents = $byRole[$role];
+            $count = count($roleStudents);
+
+            if ($count === 0) continue;
+
+            // Sort by id for consistent ordering
+            usort($roleStudents, fn($a, $b) => $a->id <=> $b->id);
+
+            // Distribute using round-robin based on current counts (prioritize teams with fewer members)
+            foreach ($roleStudents as $student) {
+                // Find team with minimum total members
+                $minTeam = collect($teams)->sortBy(fn($t) => $teamCount[$t]['total'])->first();
+                $teamCount[$minTeam][$role]++;
+                $teamCount[$minTeam]['total']++;
+
+                // Assign to group
+                DB::table('group_members')->insert([
+                    'debate_group_id' => $teamIds[$minTeam],
+                    'student_id' => $student->id,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                // Update user's debate_team
+                DB::table('users')->where('id', $student->id)->update(['debate_team' => $minTeam]);
+
+                $assignments[] = [
+                    'student_id' => $student->id,
+                    'student_name' => $student->name,
+                    'role' => $role,
+                    'team' => $minTeam,
+                    'team_name' => $teamNames[$minTeam]
+                ];
+            }
+        }
+
+        // Calculate statistics
+        $stats = [];
+        foreach ($teams as $team) {
+            $stats[$team] = [
+                'name' => $teamNames[$team],
+                'total' => $teamCount[$team]['total'],
+                'peneliti' => $teamCount[$team]['peneliti'],
+                'aktivis' => $teamCount[$team]['aktivis'],
+                'pedagang' => $teamCount[$team]['pedagang']
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Siswa berhasil diratakan ke 3 tim!',
+            'data' => [
+                'total_students' => count($students),
+                'stats' => $stats,
+                'assignments' => $assignments
+            ]
+        ]);
+    }
 }
