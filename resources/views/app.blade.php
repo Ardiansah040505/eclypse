@@ -54,6 +54,7 @@
 <script src="{{ asset('js/modules/recap.js') }}"></script>
 <script src="{{ asset('js/modules/auth.js') }}"></script>
 <script src="{{ asset('js/modules/navigation.js') }}"></script>
+<script src="{{ asset('js/modules/objectives.js') }}"></script>
 <script src="{{ asset('js/modules/tahap1.js') }}"></script>
 <script src="{{ asset('js/modules/tahap2.js') }}"></script>
 <script src="{{ asset('js/modules/tahap3.js') }}"></script>

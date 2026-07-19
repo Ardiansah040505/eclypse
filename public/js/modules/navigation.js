@@ -50,7 +50,10 @@ function goTo(page) {
     renderTahap5();
     renderAdminRecapPanel();
   }
-  if (page === 'home' && state.isAdmin) startAdminOnlineRefresh();
+  if (page === 'home') {
+    loadLearningObjectives();
+    if (state.isAdmin) startAdminOnlineRefresh();
+  }
 
   updateProgressBar();
   window.scrollTo(0, 0);

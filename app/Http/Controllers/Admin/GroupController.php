@@ -27,11 +27,13 @@ class GroupController extends Controller
         $side = strtolower($r->side) === 'kontra' || strtolower($r->side) === 'con' ? 'con' : 'pro';
         $icons = ['🌿','⚡','🌊','🔥','🌪️','🌱'];
         $icon = $r->icon ?? $icons[array_rand($icons)];
+        $memberCount = $r->member_count ?? 0;
 
         $id = DB::table('debate_groups')->insertGetId([
             'name' => $r->name,
             'side' => $side,
             'icon' => $icon,
+            'member_count' => $memberCount,
             'created_at' => now(), 'updated_at' => now()
         ]);
         return response()->json(['success' => true, 'id' => $id]);
@@ -372,6 +374,137 @@ class GroupController extends Controller
                 'total_students' => count($students),
                 'stats' => $stats,
                 'assignments' => $assignments
+            ]
+        ]);
+    }
+
+    /**
+     * Assign students to groups based on their eco_role
+     * Admin spin wheel assigns: Peneliti 1, Peneliti 2, Aktivis 1, Aktivis 2, Pedagang 1, Pedagang 2
+     */
+    public function assignByRole(\Illuminate\Http\Request $r)
+    {
+        $assignments = $r->input('assignments', []);
+
+        if (empty($assignments)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada data assignments'
+            ], 400);
+        }
+
+        // Create groups if they don't exist
+        $groupMap = [
+            'peneliti_1' => ['name' => 'Peneliti 1', 'icon' => '🔬'],
+            'peneliti_2' => ['name' => 'Peneliti 2', 'icon' => '🔭'],
+            'aktivis_1' => ['name' => 'Aktivis 1', 'icon' => '🌿'],
+            'aktivis_2' => ['name' => 'Aktivis 2', 'icon' => '🌱'],
+            'pedagang_1' => ['name' => 'Pedagang 1', 'icon' => '🛒'],
+            'pedagang_2' => ['name' => 'Pedagang 2', 'icon' => '💰'],
+        ];
+
+        $groupIds = [];
+        foreach ($groupMap as $id => $info) {
+            $existing = DB::table('debate_groups')->where('name', $info['name'])->first();
+            if (!$existing) {
+                DB::table('debate_groups')->insert([
+                    'name' => $info['name'],
+                    'icon' => $info['icon'],
+                    'side' => 'neutral',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+            $group = DB::table('debate_groups')->where('name', $info['name'])->first();
+            $groupIds[$id] = $group->id;
+        }
+
+        // Clear existing group_members
+        $studentIds = array_keys($assignments);
+        DB::table('group_members')->whereIn('student_id', $studentIds)->delete();
+
+        // Assign students to groups
+        $results = [];
+        foreach ($assignments as $studentId => $groupId) {
+            if (isset($groupIds[$groupId])) {
+                DB::table('group_members')->insert([
+                    'debate_group_id' => $groupIds[$groupId],
+                    'student_id' => $studentId,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                $student = DB::table('users')->where('id', $studentId)->first();
+                $group = DB::table('debate_groups')->where('id', $groupIds[$groupId])->first();
+
+                $results[] = [
+                    'student_id' => $studentId,
+                    'student_name' => $student->name ?? 'Unknown',
+                    'group_id' => $groupId,
+                    'group_name' => $group->name ?? 'Unknown'
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Siswa berhasil diacak ke kelompok!',
+            'data' => [
+                'total' => count($results),
+                'assignments' => $results
+            ]
+        ]);
+    }
+
+    /**
+     * Get chat messages for a specific group
+     */
+    public function getChat($id)
+    {
+        $messages = \App\Models\GroupChat::with('student:id,name')
+            ->where('debate_group_id', $id)
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(function ($msg) {
+                return [
+                    'id' => $msg->id,
+                    'student_id' => $msg->student_id,
+                    'student_name' => $msg->student->name ?? 'Unknown',
+                    'message' => $msg->message,
+                    'time' => $msg->created_at->format('H:i')
+                ];
+            });
+
+        return response()->json(['success' => true, 'data' => $messages]);
+    }
+
+    /**
+     * Send a new chat message to a group
+     */
+    public function sendChat(\Illuminate\Http\Request $r, $id)
+    {
+        $r->validate([
+            'student_id' => 'required',
+            'message' => 'required|string'
+        ]);
+
+        $chat = \App\Models\GroupChat::create([
+            'debate_group_id' => $id,
+            'student_id' => $r->student_id,
+            'message' => $r->message
+        ]);
+
+        // Load relation
+        $chat->load('student:id,name');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $chat->id,
+                'student_id' => $chat->student_id,
+                'student_name' => $chat->student->name ?? 'Unknown',
+                'message' => $chat->message,
+                'time' => $chat->created_at->format('H:i')
             ]
         ]);
     }

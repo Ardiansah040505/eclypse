@@ -75,8 +75,24 @@ function showDebateBoard(session) {
 
   if (noSession) noSession.style.display = 'none';
   if (debateBoard) debateBoard.style.display = 'block';
-  if (argLogContainer) argLogContainer.style.display = 'block';
+
+  // Show argument log for students, hide for admin
+  if (argLogContainer) {
+    argLogContainer.style.display = state.isAdmin ? 'none' : 'block';
+  }
   if (statusBanner) statusBanner.style.display = 'block';
+
+  // Show notulensi for admin only in each group panel
+  const isAdmin = state.isAdmin;
+  if (document.getElementById('proNotulensi')) {
+    document.getElementById('proNotulensi').style.display = isAdmin ? 'block' : 'none';
+  }
+  if (document.getElementById('conNotulensi')) {
+    document.getElementById('conNotulensi').style.display = isAdmin ? 'block' : 'none';
+  }
+  if (document.getElementById('thirdNotulensi')) {
+    document.getElementById('thirdNotulensi').style.display = isAdmin ? 'block' : 'none';
+  }
 
   // Update topic
   const topicText = document.getElementById('debateTopicText');
@@ -99,6 +115,11 @@ function showDebateBoard(session) {
   // Update kancing status
   debateState.kancingStatus = session.kancing_status || { pro: 5, con: 5, netral: 5 };
   renderKancingButtons();
+
+  // Load notulensi for admin
+  if (isAdmin) {
+    loadNotulensi();
+  }
 }
 
 function updateStatusBanner(session) {
@@ -141,9 +162,10 @@ function updateGroupDisplay(side, group) {
     if (memberCountEl) memberCountEl.textContent = group.members?.length || 0;
 
     if (membersListEl) {
-      membersListEl.innerHTML = group.members?.map(m =>
+      const membersHTML = group.members?.map(m =>
         `<div class="member-item"><div class="member-avatar-sm">${m.name?.charAt(0)?.toUpperCase() || '?'}</div>${m.name}</div>`
-      ).join('') || '';
+      ).join('');
+      membersListEl.innerHTML = membersHTML || '<span style="opacity:0.6">Belum ada anggota</span>';
     }
   } else {
     if (nameEl) nameEl.textContent = 'Belum Ditentukan';
@@ -386,6 +408,70 @@ function renderArguments() {
   });
 }
 
+// Load notulensi for admin (grouped by team)
+async function loadNotulensi() {
+  try {
+    const res = await fetch('/api/debate/arguments');
+    const data = await res.json();
+
+    if (data.success) {
+      const args = data.data || [];
+
+      // Group by side
+      const bySide = { pro: [], con: [], netral: [] };
+      args.forEach(arg => {
+        if (arg.side && bySide.hasOwnProperty(arg.side)) {
+          bySide[arg.side].push(arg);
+        }
+      });
+
+      // Render notulensi for each team
+      ['pro', 'con', 'netral'].forEach(side => {
+        const container = document.getElementById(side + 'NotulensiLog');
+        if (!container) return;
+
+        const sideArgs = bySide[side] || [];
+        if (sideArgs.length === 0) {
+          container.innerHTML = '<div style="color:var(--gray);font-size:0.8rem">Belum ada notulensi.</div>';
+        } else {
+          container.innerHTML = sideArgs.map(arg => `
+            <div style="margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.5);border-radius:6px">
+              <div style="font-weight:600;font-size:0.75rem;color:var(--dark);margin-bottom:4px">${arg.user?.name || 'Unknown'} <span style="opacity:0.6">· ${arg.time || ''}</span></div>
+              <div style="font-size:0.8rem">${arg.content}</div>
+            </div>
+          `).join('');
+        }
+      });
+    }
+  } catch (e) {
+    console.error('Error loading notulensi:', e);
+  }
+}
+
+// Add notulensi for admin
+async function addNotulensi(side) {
+  const input = document.getElementById(side + 'NotulensiInput');
+  const txt = input?.value?.trim();
+  if (!txt) {
+    showToast('⚠️ Ketik notulensi dulu!');
+    return;
+  }
+
+  const log = document.getElementById(side + 'NotulensiLog');
+  const now = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+  // Add to UI immediately
+  if (log) {
+    log.innerHTML += `<div style="margin-bottom:8px;padding:6px;background:rgba(255,255,255,0.5);border-radius:6px">
+      <div style="font-weight:600;font-size:0.75rem;color:var(--dark);margin-bottom:4px">${state.user?.name || 'Bapak/Ibu Guru'} <span style="opacity:0.6">· ${now}</span></div>
+      <div style="font-size:0.8rem">${txt}</div>
+    </div>`;
+    input.value = '';
+    log.scrollTop = log.scrollHeight;
+  }
+  showToast('✅ Notulensi disimpan!');
+}
+
 async function sendArgument() {
   const txt = document.getElementById('argInput')?.value?.trim();
   if (!txt) {
@@ -482,20 +568,21 @@ async function loadGroupsForSetup() {
     if (data.success) {
       const proSelect = document.getElementById('proGroupSelect');
       const conSelect = document.getElementById('conGroupSelect');
+      const thirdSelect = document.getElementById('thirdGroupSelect');
 
       if (proSelect) {
         proSelect.innerHTML = '<option value="">-- Pilih Kelompok --</option>' +
-          data.data.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name} (${g.members?.length || 0} anggota)</option>`).join('');
+          data.data.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name}</option>`).join('');
       }
 
       if (conSelect) {
         conSelect.innerHTML = '<option value="">-- Pilih Kelompok --</option>' +
-          data.data.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name} (${g.members?.length || 0} anggota)</option>`).join('');
+          data.data.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name}</option>`).join('');
       }
 
       if (thirdSelect) {
         thirdSelect.innerHTML = '<option value="">-- Pilih Kelompok --</option>' +
-          data.data.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name} (${g.members?.length || 0} anggota)</option>`).join('');
+          data.data.map(g => `<option value="${g.id}">${g.icon || ''} ${g.name}</option>`).join('');
       }
 
       if (debateState.session?.pro_group?.id && proSelect) {
@@ -810,6 +897,7 @@ window.renderTeamButtons = renderTeamButtons;
 window.removeTeamButton = removeTeamButton;
 window.resetTeamButtons = resetTeamButtons;
 window.sendArgument = sendArgument;
+window.addNotulensi = addNotulensi;
 window.renderKancingButtons = renderKancingButtons;
 window.renderKancingControls = renderKancingControls;
 window.confirmReduceKancing = confirmReduceKancing;
@@ -827,3 +915,4 @@ window.loadDebateRulesForDisplay = loadDebateRulesForDisplay;
 window.editDebateRule = editDebateRule;
 window.saveDebateRule = saveDebateRule;
 window.deleteDebateRule = deleteDebateRule;
+window.loadNotulensi = loadNotulensi;

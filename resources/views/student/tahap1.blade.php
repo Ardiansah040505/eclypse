@@ -12,6 +12,7 @@
         <p>Pilih berita untuk membaca lengkap dan menjawab pertanyaan terkait</p>
       </div>
       <div id="adminBar1" style="display:none">
+        <button class="btn-sm yellow" onclick="openSpinWheel()">🎡 Acak Kelompok</button>
         <button class="btn-sm green" onclick="openModal('modal-addnews')">+ Tambah Berita</button>
       </div>
     </div>

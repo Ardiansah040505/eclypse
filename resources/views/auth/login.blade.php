@@ -26,7 +26,7 @@
       </div>
       <button class="btn-primary" onclick="doLoginSiswa()">Masuk ke ECLYPSE 🌿</button>
       <div class="login-divider">atau masuk sebagai</div>
-      <button class="btn-primary btn-yellow" onclick="doLoginAdmin()">👤 Admin / Guru</button>
+      <button class="btn-primary btn-yellow" onclick="doLoginAdmin()">👤 Bapak / Ibu Guru</button>
     </div>
   </div>
 </div>

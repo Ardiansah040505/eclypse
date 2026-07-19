@@ -17,7 +17,7 @@ class NewsQuestionController extends Controller
 
     $question = NewsQuestion::create([
         'learning_news_id' => $newsId,
-        'question' => $request->question, 
+        'question' => $request->question,
         'type' => $type,
         'order' => $request->order ?? 1
     ]);
@@ -41,14 +41,53 @@ class NewsQuestionController extends Controller
     ]);
 }
 
+    public function update(Request $request, $id)
+    {
+        $question = NewsQuestion::find($id);
+        if (!$question) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pertanyaan tidak ditemukan'
+            ], 404);
+        }
+
+        $type = $request->type == 'mc'
+            ? 'multiple_choice'
+            : 'essay';
+
+        $question->update([
+            'question' => $request->question,
+            'type' => $type,
+            'order' => $request->order ?? $question->order
+        ]);
+
+        // Update options for multiple choice
+        if ($type == 'multiple_choice') {
+            // Delete existing options
+            NewsOption::where('news_question_id', $id)->delete();
+
+            // Create new options
+            foreach ($request->options as $index => $option) {
+                NewsOption::create([
+                    'news_question_id' => $id,
+                    'option_text' => $option,
+                    'is_correct' => ($index == $request->answer)
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pertanyaan berhasil diperbarui!'
+        ]);
+    }
+
     public function destroy($id)
     {
         NewsQuestion::destroy($id);
 
         return response()->json([
-
             'success' => true
-
         ]);
     }
 }

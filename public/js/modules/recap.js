@@ -289,45 +289,15 @@ window.downloadRecapCSV = downloadRecapCSV;
 window.updateProgressBar = updateProgressBar;
 
 // ══════════════════════════════════════════════════════════════════════════
-// SPIN WHEEL - Check and trigger after news completion
+// SPIN WHEEL - Admin only feature (visual random group selector)
 // ══════════════════════════════════════════════════════════════════════════
 
-async function checkAndTriggerSpinWheel() {
-  // Check if user is student and hasn't spun yet
-  if (!state.user || state.isAdmin) return;
-  if (state.hasSpun) return;
-
-  // Check if all news are completed
-  if (!state.newsProgress || Object.keys(state.newsProgress).length === 0) return;
-  const totalNews = state.news?.length || 0;
-  if (totalNews === 0) return;
-
-  let completedNews = 0;
-  for (const newsId of Object.keys(state.newsProgress)) {
-    if (state.newsProgress[newsId].is_completed) {
-      completedNews++;
-    }
-  }
-
-  // Only trigger if ALL news are completed
-  if (completedNews < totalNews) return;
-
-  // Check if user already has a role assigned
-  const existingRole = localStorage.getItem('eclypse_role_' + state.user?.id);
-  if (existingRole) {
-    try {
-      state._studentRole = JSON.parse(existingRole);
-      state.selectedEcoRole = state._studentRole.id;
-      return; // Already spun
-    } catch (e) {
-      // Invalid data, continue to spin
-    }
-  }
-
-  // Open spin wheel to assign role
+// Function for admin to open spin wheel from Tahap 1
+function triggerAdminSpinWheel() {
+  if (!state.isAdmin) return;
   openSpinWheel();
-  state.hasSpun = true;
 }
 
 // Export
-window.checkAndTriggerSpinWheel = checkAndTriggerSpinWheel;
+window.triggerAdminSpinWheel = triggerAdminSpinWheel;
+window.openSpinWheel = openSpinWheel;

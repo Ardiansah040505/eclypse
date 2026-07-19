@@ -4,7 +4,7 @@
 <div class="modal-overlay" id="modal-admin-login">
   <div class="modal-box" style="max-width:400px">
     <div class="modal-header">
-      <div class="modal-title">👤 Login Admin / Guru</div>
+      <div class="modal-title">👤 Login Bapak / Ibu Guru</div>
       <button class="modal-close" onclick="closeModal('modal-admin-login')">✕</button>
     </div>
     <div class="modal-form">
@@ -19,7 +19,7 @@
       </div>
       <div id="adminLoginError" style="display:none;color:#e53e3e;font-size:0.85rem;padding:8px 12px;background:#fff5f5;border-radius:8px;border:1px solid #feb2b2"></div>
       <button class="btn-sm green" id="adminLoginBtn" onclick="submitAdminLogin()" style="width:100%;padding:12px;font-size:1rem">
-        Masuk sebagai Admin 🔐
+        Masuk sebagai Bapak/Ibu Guru 🔐
       </button>
     </div>
   </div>
@@ -128,7 +128,14 @@
       <button class="modal-close" onclick="closeModal('modal-addgroup')">✕</button>
     </div>
     <div class="modal-form">
-      <div><label>Nama Kelompok</label><input type="text" id="groupName" placeholder="nama kelompok..."></div>
+      <div style="margin-bottom:1rem">
+        <label>Nama Kelompok</label>
+        <input type="text" id="groupName" placeholder="Contoh: Peneliti 1, Aktivis 2..." style="width:100%;padding:10px;border:2px solid var(--green-pale);border-radius:8px">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label>Jumlah Anggota</label>
+        <input type="number" id="groupMemberCount" placeholder="Contoh: 5" min="1" max="50" value="5" style="width:100%;padding:10px;border:2px solid var(--green-pale);border-radius:8px">
+      </div>
       <button class="btn-sm green" onclick="addGroup()">+ Tambahkan</button>
     </div>
   </div>
@@ -241,3 +248,69 @@
     </div>
   </div>
 </div>
+
+{{-- Modal: Edit Question --}}
+<div class="modal-overlay" id="modal-edit-question">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Soal</div>
+      <button class="modal-close" onclick="closeModal('modal-edit-question')">✕</button>
+    </div>
+    <div class="modal-form">
+      <input type="hidden" id="editQuestionId">
+      <div style="margin-bottom:1rem">
+        <label>Tipe Soal</label>
+        <select id="editQuestionType" style="width:100%;padding:10px;border:2px solid var(--green-pale);border-radius:8px" onchange="toggleEditQuestionOptions()">
+          <option value="mc">Pilihan Ganda</option>
+          <option value="essay">Esai</option>
+        </select>
+      </div>
+      <div style="margin-bottom:1rem">
+        <label>Pertanyaan</label>
+        <textarea id="editQuestionText" placeholder="Tulis pertanyaan..." style="width:100%;min-height:80px;padding:10px;border:2px solid var(--green-pale);border-radius:8px;resize:vertical;font-family:'Nunito',sans-serif"></textarea>
+      </div>
+      <div id="editQuestionOptionsDiv" style="margin-bottom:1rem">
+        <label>Pilihan Jawaban</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input type="text" id="editOptionA" placeholder="A. Pilihan A" style="padding:10px;border:2px solid var(--green-pale);border-radius:8px">
+          <input type="text" id="editOptionB" placeholder="B. Pilihan B" style="padding:10px;border:2px solid var(--green-pale);border-radius:8px">
+          <input type="text" id="editOptionC" placeholder="C. Pilihan C" style="padding:10px;border:2px solid var(--green-pale);border-radius:8px">
+          <input type="text" id="editOptionD" placeholder="D. Pilihan D" style="padding:10px;border:2px solid var(--green-pale);border-radius:8px">
+        </div>
+        <label style="margin-top:8px;display:block">Jawaban Benar</label>
+        <select id="editAnswer" style="width:100%;padding:10px;border:2px solid var(--green-pale);border-radius:8px">
+          <option value="0">A</option>
+          <option value="1">B</option>
+          <option value="2">C</option>
+          <option value="3">D</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem">
+        <button class="btn-sm green" onclick="saveEditedQuestion()">💾 Simpan</button>
+        <button class="btn-sm" style="background:var(--gray-200);color:var(--dark)" onclick="closeModal('modal-edit-question')">Batal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{-- Modal: Tambah/Edit Tujuan Pembelajaran --}}
+<div class="modal-overlay" id="modal-learning-objective">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title" id="objectiveModalTitle">🎯 Tambah Tujuan Pembelajaran</div>
+      <button class="modal-close" onclick="closeModal('modal-learning-objective')">✕</button>
+    </div>
+    <div class="modal-form">
+      <input type="hidden" id="objectiveId">
+      <div style="margin-bottom:1rem">
+        <label>Tujuan Pembelajaran</label>
+        <textarea id="objectiveText" placeholder="Tuliskan tujuan pembelajaran di sini..." style="width:100%;min-height:100px;padding:10px;border:2px solid var(--green-pale);border-radius:8px;font-size:0.9rem;resize:vertical;font-family:'Nunito',sans-serif"></textarea>
+      </div>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn-sm green" onclick="saveLearningObjective()">💾 Simpan</button>
+        <button class="btn-sm" style="background:var(--gray-200);color:var(--dark)" onclick="closeModal('modal-learning-objective')">Batal</button>
+      </div>
+    </div>
+  </div>
+</div>
+

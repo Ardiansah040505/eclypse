@@ -339,11 +339,6 @@ async function saveNewsAnswer() {
 
       updateProgressBar();
 
-      // Check and trigger spin wheel after completing all news
-      setTimeout(() => {
-        checkAndTriggerSpinWheel();
-      }, 500);
-
       // Show success message and go back to news list
       if (data.data.is_completed) {
         showToast('🎉 Semua soal dijawab! Tahap 1 selesai!', 3000);
@@ -373,25 +368,76 @@ async function saveNewsAnswer() {
 }
 
 // ══════════════════ QUESTION EDITOR (FOR ADMIN) ══════════════════
+
+// Load questions for a specific news item
+async function loadNewsQuestions(newsId) {
+    try {
+        const response = await fetch('/api/admin/news/' + newsId);
+        const data = await response.json();
+        if (data.success) {
+            // Update the news in state with fresh questions
+            const newsIndex = state.news.findIndex(n => n.id == newsId);
+            if (newsIndex !== -1) {
+                const news = data.news || data;
+                state.news[newsIndex] = {
+                    id: news.id,
+                    title: news.title,
+                    body: news.content,
+                    tag: news.tag,
+                    image: news.thumbnail,
+                    questions: (news.questions || []).map(q => {
+                        if (q.type === 'essay') {
+                            return {
+                                id: q.id,
+                                text: q.question,
+                                type: 'essay'
+                            };
+                        }
+                        const answer = q.options?.findIndex(o => o.is_correct) ?? 0;
+                        return {
+                            id: q.id,
+                            text: q.question,
+                            type: 'mc',
+                            options: (q.options || []).map(o => o.option_text),
+                            answer: answer
+                        };
+                    })
+                };
+            }
+        }
+    } catch (e) {
+        console.error('Error loading news questions:', e);
+    }
+}
+
 function questionFormHtml(number, question = null, type = null) {
   const qtype = type || question?.type || 'mc';
+  const qId = question?.id || '';
+  const isEditing = !!qId;
+
   if (qtype === 'essay') {
     const val = question || { text: '', type: 'essay' };
-    return `<div class="question-editor essay-editor">
+    return `<div class="question-editor essay-editor" data-question-id="${qId}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <label style="margin:0">Soal Esai ${number} <span style="background:#e8f0fe;color:#1a3a7a;font-size:0.7rem;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:6px">ESAI</span></label>
-        <button type="button" class="editor-remove" onclick="removeQuestionForm(this)">Hapus</button>
+        <label style="margin:0">Soal Esai ${number} ${isEditing ? '<span style="background:#fef3c7;color:#92400e;font-size:0.7rem;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:6px">EDIT</span>' : '<span style="background:#e8f0fe;color:#1a3a7a;font-size:0.7rem;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:6px">ESAI</span>'}</label>
+        <div style="display:flex;gap:4px">
+          ${isEditing ? `<button type="button" class="editor-edit" onclick="editQuestion('${qId}')" style="background:#fef3c7;color:#92400e;border:none;padding:4px 8px;border-radius:6px;cursor:pointer">✏️ Edit</button>` : ''}
+          <button type="button" class="editor-remove" onclick="removeQuestionForm(this)">Hapus</button>
+        </div>
       </div>
-      <textarea class="mc-question essay-question" placeholder="Tulis pertanyaan esai..." style="min-height:80px">${val.text}</textarea>
+      <textarea class="mc-question essay-question" placeholder="Tulis pertanyaan esai...">${val.text}</textarea>
       <input type="hidden" class="mc-essay-flag" value="essay">
     </div>`;
   }
   // default: pilihan ganda
   const values = question || { text:'', options:['', '', '', ''], answer:0 };
-  return `<div class="question-editor">
+  return `<div class="question-editor" data-question-id="${qId}">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-      <label style="margin:0">Soal PG ${number} <span style="background:var(--green-pale);color:var(--green-deep);font-size:0.7rem;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:6px">PILIHAN GANDA</span></label>
-      <button type="button" class="editor-remove" onclick="removeQuestionForm(this)">Hapus</button>
+      <label style="margin:0">Soal PG ${number} ${isEditing ? '<span style="background:#fef3c7;color:#92400e;font-size:0.7rem;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:6px">EDIT</span>' : '<span style="background:var(--green-pale);color:var(--green-deep);font-size:0.7rem;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:6px">PILIHAN GANDA</span>'}</label>
+      <div style="display:flex;gap:4px">
+        ${isEditing ? `<button type="button" class="editor-edit" onclick="editQuestion('${qId}')" style="background:#fef3c7;color:#92400e;border:none;padding:4px 8px;border-radius:6px;cursor:pointer">✏️ Edit</button>` : ''}
+        <button type="button" class="editor-remove" onclick="removeQuestionForm(this)">Hapus</button>
+      </div>
     </div>
     <textarea class="mc-question" placeholder="Tulis pertanyaan...">${values.text}</textarea>
     <label>Pilihan jawaban</label>
@@ -401,6 +447,109 @@ function questionFormHtml(number, question = null, type = null) {
     <label>Jawaban yang benar</label>
     <select class="mc-answer"><option value="0" ${values.answer === 0 ? 'selected' : ''}>A</option><option value="1" ${values.answer === 1 ? 'selected' : ''}>B</option><option value="2" ${values.answer === 2 ? 'selected' : ''}>C</option><option value="3" ${values.answer === 3 ? 'selected' : ''}>D</option></select>
   </div>`;
+}
+
+// Edit question (open modal for editing)
+let editingQuestionId = null;
+
+function editQuestion(questionId) {
+  const editor = document.querySelector(`[data-question-id="${questionId}"]`);
+  if (!editor) return;
+
+  editingQuestionId = questionId;
+
+  // Get current values
+  const text = editor.querySelector('.mc-question').value;
+  const isEssay = !!editor.querySelector('.mc-essay-flag');
+  const type = isEssay ? 'essay' : 'mc';
+
+  let options = [];
+  let answer = 0;
+  if (!isEssay) {
+    options = [...editor.querySelectorAll('.mc-option')].map(i => i.value);
+    answer = Number(editor.querySelector('.mc-answer').value);
+  }
+
+  // Fill modal
+  document.getElementById('editQuestionText').value = text;
+  document.getElementById('editQuestionType').value = type;
+  document.getElementById('editQuestionId').value = questionId;
+
+  // Show/hide options based on type
+  const optionsDiv = document.getElementById('editQuestionOptionsDiv');
+  if (optionsDiv) {
+    optionsDiv.style.display = isEssay ? 'none' : 'block';
+    if (!isEssay && options.length === 4) {
+      document.getElementById('editOptionA').value = options[0];
+      document.getElementById('editOptionB').value = options[1];
+      document.getElementById('editOptionC').value = options[2];
+      document.getElementById('editOptionD').value = options[3];
+      document.getElementById('editAnswer').value = answer;
+    }
+  }
+
+  openModal('modal-edit-question');
+}
+
+async function saveEditedQuestion() {
+  const questionId = document.getElementById('editQuestionId')?.value;
+  const text = document.getElementById('editQuestionText')?.value?.trim();
+  const type = document.getElementById('editQuestionType')?.value;
+
+  if (!text) {
+    showToast('⚠️ Pertanyaan tidak boleh kosong!');
+    return;
+  }
+
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    let body = { question: text, type };
+
+    if (type === 'mc') {
+      body.options = [
+        document.getElementById('editOptionA')?.value,
+        document.getElementById('editOptionB')?.value,
+        document.getElementById('editOptionC')?.value,
+        document.getElementById('editOptionD')?.value
+      ];
+      body.answer = Number(document.getElementById('editAnswer')?.value || 0);
+    }
+
+    const res = await fetch(`/api/admin/question/${questionId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      closeModal('modal-edit-question');
+      showToast('✅ Pertanyaan berhasil diperbarui!');
+
+      // Reload questions
+      const news = state.news[state.selectedNewsIndex];
+      if (news) {
+        await loadNewsQuestions(news.id);
+      }
+    } else {
+      showToast('⚠️ ' + (data.message || 'Gagal menyimpan'));
+    }
+  } catch (e) {
+    console.error('Error saving question:', e);
+    showToast('⚠️ Gagal menyimpan pertanyaan');
+  }
+}
+
+function toggleEditQuestionOptions() {
+  const type = document.getElementById('editQuestionType')?.value;
+  const optionsDiv = document.getElementById('editQuestionOptionsDiv');
+  if (optionsDiv) {
+    optionsDiv.style.display = type === 'essay' ? 'none' : 'block';
+  }
 }
 
 function addQuestionForm(containerId = 'questionBuilder', question = null, type = null) {
@@ -548,6 +697,9 @@ function openNewsEditor(index){
     document.getElementById('editNewsImage').value=news.image||"";
 
     previewNewsImage(news.image||"","editNewsImagePreview");
+
+    // Load existing questions into the edit form
+    initQuestionBuilder('editQuestionBuilder', news.questions || []);
 
     openModal('modal-editnews');
 
@@ -754,6 +906,7 @@ async function addNews() {
 
 // Export functions globally
 window.loadNews = loadNews;
+window.loadNewsQuestions = loadNewsQuestions;
 window.renderTahap1 = renderTahap1;
 window.openNews = openNews;
 window.renderNewsDetail = renderNewsDetail;
@@ -770,3 +923,7 @@ window.saveNewsEdits = saveNewsEdits;
 window.deleteNews = deleteNews;
 window.previewNewsImage = previewNewsImage;
 window.addNews = addNews;
+// Edit question functions
+window.editQuestion = editQuestion;
+window.saveEditedQuestion = saveEditedQuestion;
+window.toggleEditQuestionOptions = toggleEditQuestionOptions;

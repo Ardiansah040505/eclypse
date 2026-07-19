@@ -45,5 +45,17 @@ class DatabaseSeeder extends Seeder
                 ]
             );
         }
+
+        // Seed default Learning Objectives
+        $objectives = [
+            'Memahami penyebab dan dampak perubahan iklim secara global maupun lokal.',
+            'Menganalisis peran dan kontribusi berbagai pihak dalam mengatasi krisis iklim.',
+            'Mempersiapkan argumen logis dan kritis mengenai solusi perubahan iklim melalui sesi debat.',
+            'Merefleksikan aksi nyata yang dapat dilakukan dalam kehidupan sehari-hari untuk menjaga kelestarian lingkungan.'
+        ];
+
+        foreach ($objectives as $text) {
+            \App\Models\LearningObjective::firstOrCreate(['text' => $text]);
+        }
     }
 }

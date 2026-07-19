@@ -71,36 +71,18 @@ function renderTahap2() {
     videoDescEl.innerHTML = state.videoDesc || '⚠️ Admin belum menambahkan video.';
   }
 
-  // Render pack grid
+  // Render pack grid - TAMPILKAN SEMUA PAKET UNTUK SEMUA SISWA
   const grid = document.getElementById('ecoPacksGrid');
   if (!grid) return;
 
-  // Check student's assigned role
-  const studentRole = state.selectedEcoRole || state._studentRole?.id;
-
-  // If student has a role, only show that specific pack
-  const visiblePacks = studentRole
-    ? ecoPacks.filter(pack => pack.id === studentRole)
-    : ecoPacks;
-
-  // Show message if role is assigned
+  // Hide the role assigned message since students don't need role anymore
   const roleMessage = document.getElementById('roleAssignedMessage');
-  if (studentRole && visiblePacks.length === 1) {
-    const roleName = visiblePacks[0].name;
-    if (roleMessage) {
-      roleMessage.style.display = 'block';
-      roleMessage.innerHTML = `🎯 <strong>Role kamu:</strong> ${roleName} — Hanya paket ini yang bisa kamu buka!`;
-    }
-  } else if (!studentRole) {
-    if (roleMessage) {
-      roleMessage.style.display = 'block';
-      roleMessage.innerHTML = '⚠️ Role belum ditentukan. Selesaikan Tahap 1 terlebih dahulu!';
-    }
-  } else {
-    if (roleMessage) roleMessage.style.display = 'none';
+  if (roleMessage) {
+    roleMessage.style.display = 'none';
   }
 
-  grid.innerHTML = visiblePacks.map(pack => {
+  // Tampilkan semua paket eco cards
+  grid.innerHTML = ecoPacks.map(pack => {
     const isOpened = !!state.openedPacks[pack.id];
     const cardCount = state.ecoCards.filter(c => c.type === pack.id).length;
     return `
@@ -119,34 +101,22 @@ function renderTahap2() {
 
 // ══════════════════ OPEN ECO PACK ══════════════════
 function openEcoPack(packId) {
-  // Cek apakah siswa sudah punya role yang ditentukan
-  const studentRole = state.selectedEcoRole || state._studentRole?.id;
-
-  // Jika punya role dari spin wheel, hanya bisa buka paket sesuai role
-  if (studentRole && packId !== studentRole) {
-    const roleName = ecoPacks.find(p => p.id === studentRole)?.name || studentRole;
-    showToast(`⚠️ Role kamu adalah ${roleName}! Hanya paket itu yang bisa kamu buka!`);
-    return;
-  }
-
+  // HAPUS PEMBATASAN ROLE - siswa bisa buka semua paket
   // Cek apakah sudah pernah buka paket sebelumnya
   const alreadyOpened = Object.keys(state.openedPacks || {}).some(id => state.openedPacks[id]);
   const isFirstOpen = !alreadyOpened;
 
-  // Jika sudah buka paket lain, tidak bisa buka paket lain
-  if (alreadyOpened && !state.openedPacks[packId]) {
-    showToast('⚠️ Kamu hanya boleh memilih 1 paket. Selesaikan paket yang sudah dipilih dulu!');
-    return;
-  }
+  // HAPUS PEMBATASAN - siswa bisa buka semua paket
+  //if (alreadyOpened && !state.openedPacks[packId]) {
+  //  showToast('⚠️ Kamu hanya boleh memilih 1 paket. Selesaikan paket yang sudah dipilih dulu!');
+  //  return;
+  //}
 
   const pack = ecoPacks.find(p => p.id === packId);
   if (!pack) return;
   const cards = state.ecoCards.filter(c => c.type === packId);
   const isNew = !state.openedPacks[packId];
   state.openedPacks[packId] = true;
-
-  // Simpan role yang dipilih (untuk pertanyaan pemantik)
-  state.selectedEcoRole = packId; // 'peneliti', 'aktivis', atau 'pedagang'
 
   // Simpan ke localStorage
   if (typeof savePersistedState === 'function') {

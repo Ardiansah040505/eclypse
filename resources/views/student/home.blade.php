@@ -27,6 +27,21 @@
       </div>
     </div>
 
+    {{-- TUJUAN PEMBELAJARAN SECTION --}}
+    <div id="learningObjectivesPanel" style="background:white; border-radius:var(--radius); padding:1.5rem; margin-bottom:1.5rem; box-shadow:0 2px 16px rgba(0,0,0,0.07); border-left:4px solid var(--green-light)">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem">
+        <div style="font-weight:800; font-size:1.2rem; color:var(--dark); display:flex; align-items:center; gap:8px">
+          <span>🎯</span> Tujuan Pembelajaran
+        </div>
+        <button id="addObjectiveBtn" class="btn-sm green" style="display:none" onclick="openAddObjectiveModal()">
+          ➕ Tambah Tujuan
+        </button>
+      </div>
+      <div id="objectivesListContainer" style="display:flex; flex-direction:column; gap:12px">
+        <div style="color:var(--gray); font-style:italic">Memuat tujuan pembelajaran...</div>
+      </div>
+    </div>
+
     <div id="adminOnlinePanel" style="display:none;background:white;border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,0.07);border-left:4px solid #4DA6FF">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:0.75rem">
         <div style="font-weight:800;font-size:1.05rem;color:var(--dark)">🟢 Siswa Sedang Online</div>

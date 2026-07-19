@@ -13,6 +13,7 @@ use App\Http\Controllers\Student\ReflectionController;
 use App\Http\Controllers\Student\StudentNewsAnswerController;
 use App\Http\Controllers\Admin\GroupController;
 use App\Http\Controllers\Admin\DownloadController;
+use App\Http\Controllers\Admin\LearningObjectiveController;
 
 Route::get('/', [StudentAuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [StudentAuthController::class, 'login']);
@@ -20,6 +21,12 @@ Route::post('/login', [StudentAuthController::class, 'login']);
 // Route /admin GET - arahkan ke halaman utama (login admin via tombol di halaman utama)
 Route::get('/admin', fn() => redirect('/'));
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
+
+// Routes Tujuan Pembelajaran
+Route::get('/api/learning-objectives', [LearningObjectiveController::class, 'index']);
+Route::post('/api/admin/learning-objectives', [LearningObjectiveController::class, 'store']);
+Route::put('/api/admin/learning-objectives/{id}', [LearningObjectiveController::class, 'update']);
+Route::delete('/api/admin/learning-objectives/{id}', [LearningObjectiveController::class, 'destroy']);
 
 // Routes Tahap 1 - News
 Route::get('/admin/news', [LearningNewsController::class, 'index']);

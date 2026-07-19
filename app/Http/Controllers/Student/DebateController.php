@@ -62,7 +62,13 @@ class DebateController extends Controller
         // End any active sessions first
         DebateSession::where('status', 'active')->update(['status' => 'finished']);
 
-        // Create new session
+        // Count number of groups
+        $groupCount = 0;
+        if ($request->pro_group_id) $groupCount++;
+        if ($request->con_group_id) $groupCount++;
+        if ($request->third_group_id) $groupCount++;
+
+        // Create new session first so we have an ID
         $session = DebateSession::create([
             'topic' => $request->topic,
             'status' => 'waiting',
@@ -70,6 +76,17 @@ class DebateController extends Controller
             'con_group_id' => $request->con_group_id,
             'third_group_id' => $request->third_group_id
         ]);
+
+        // Reset kancing for all selected groups using the session ID
+        if ($request->pro_group_id) {
+            DebateGroup::find($request->pro_group_id)?->resetKancing($session->id, $groupCount);
+        }
+        if ($request->con_group_id) {
+            DebateGroup::find($request->con_group_id)?->resetKancing($session->id, $groupCount);
+        }
+        if ($request->third_group_id) {
+            DebateGroup::find($request->third_group_id)?->resetKancing($session->id, $groupCount);
+        }
 
         return response()->json([
             'success' => true,
@@ -140,15 +157,21 @@ class DebateController extends Controller
         $session->third_group_id = $request->third_group_id;
         $session->save();
 
-        // Reset kancing for the new groups
+        // Count number of groups set
+        $groupCount = 0;
+        if ($request->pro_group_id) $groupCount++;
+        if ($request->con_group_id) $groupCount++;
+        if ($request->third_group_id) $groupCount++;
+
+        // Reset kancing for the new groups (kancing = number of groups)
         if ($request->pro_group_id) {
-            DebateGroup::find($request->pro_group_id)?->resetKancing($session->id);
+            DebateGroup::find($request->pro_group_id)?->resetKancing($session->id, $groupCount);
         }
         if ($request->con_group_id) {
-            DebateGroup::find($request->con_group_id)?->resetKancing($session->id);
+            DebateGroup::find($request->con_group_id)?->resetKancing($session->id, $groupCount);
         }
         if ($request->third_group_id) {
-            DebateGroup::find($request->third_group_id)?->resetKancing($session->id);
+            DebateGroup::find($request->third_group_id)?->resetKancing($session->id, $groupCount);
         }
 
         return response()->json([
@@ -268,7 +291,15 @@ class DebateController extends Controller
         ]);
 
         $group = DebateGroup::findOrFail($groupId);
-        $sessionId = DebateSession::where('status', 'active')->latest()->first()?->id;
+        $sessionId = DebateSession::whereIn('status', ['active', 'waiting'])->latest()->first()?->id 
+            ?? DebateSession::latest()->first()?->id;
+
+        if (!$sessionId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada sesi debat yang terdaftar!'
+            ], 400);
+        }
 
         $success = $group->reduceKancing(
             null,
@@ -299,7 +330,15 @@ class DebateController extends Controller
     public function resetKancing($groupId)
     {
         $group = DebateGroup::findOrFail($groupId);
-        $sessionId = DebateSession::where('status', 'active')->latest()->first()?->id;
+        $sessionId = DebateSession::whereIn('status', ['active', 'waiting'])->latest()->first()?->id 
+            ?? DebateSession::latest()->first()?->id;
+
+        if (!$sessionId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada sesi debat yang terdaftar!'
+            ], 400);
+        }
 
         $group->resetKancing($sessionId);
 

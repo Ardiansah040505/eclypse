@@ -37,6 +37,7 @@ Route::post('admin/news', [LearningNewsController::class, 'store']);
 Route::put('admin/news/{id}', [LearningNewsController::class, 'update']);
 Route::delete('admin/news/{id}', [LearningNewsController::class, 'destroy']);
 Route::post('admin/news/{news}/question', [NewsQuestionController::class, 'store']);
+Route::put('admin/question/{id}', [NewsQuestionController::class, 'update']);
 Route::delete('admin/question/{id}', [NewsQuestionController::class, 'destroy']);
 
 // Routes Video
@@ -66,7 +67,10 @@ Route::delete('groups/{id}', [GroupController::class, 'destroy']);
 Route::get('students', [GroupController::class, 'students']);
 Route::post('groups/assign', [GroupController::class, 'assign']);
 Route::post('groups/assign-spin', [GroupController::class, 'assignSpin']);
+Route::post('groups/assign-by-role', [GroupController::class, 'assignByRole']);
 Route::delete('groups/student/{id}', [GroupController::class, 'removeStudent']);
+Route::get('groups/{id}/chat', [GroupController::class, 'getChat']);
+Route::post('groups/{id}/chat', [GroupController::class, 'sendChat']);
 Route::post('heartbeat', [GroupController::class, 'heartbeat']);
 Route::post('logout', [GroupController::class, 'logout']);
 Route::get('me', [GroupController::class, 'me']);

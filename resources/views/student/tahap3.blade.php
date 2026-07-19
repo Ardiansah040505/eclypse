@@ -27,10 +27,5 @@
       <div id="onlineStudentsPanel"></div>
       <div id="groupsContainer"></div>
     </div>
-
-    {{-- Debug Info (hapus di production) --}}
-    <div id="debugPrepInfo" style="display:none;background:#f0f0f0;padding:1rem;border-radius:8px;margin-top:1rem;font-size:0.75rem">
-      <strong>DEBUG:</strong> Role: <span id="debugRole">-</span> | Count: <span id="debugCount">-</span>
-    </div>
   </div>
 </div>

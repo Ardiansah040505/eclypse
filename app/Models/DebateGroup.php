@@ -71,12 +71,13 @@ class DebateGroup extends Model
     }
 
     /**
-     * Reset kancing to 5
+     * Reset kancing to number of groups
      */
-    public function resetKancing(?int $sessionId = null): void
+    public function resetKancing(?int $sessionId = null, ?int $groupCount = null): void
     {
         $before = $this->kancing_count;
-        $this->kancing_count = 5;
+        $kancingValue = $groupCount ?? 5;
+        $this->kancing_count = $kancingValue;
         $this->save();
 
         DebateKancingLog::create([
@@ -84,7 +85,7 @@ class DebateGroup extends Model
             'debate_group_id' => $this->id,
             'reduced_by' => null,
             'kancing_before' => $before,
-            'kancing_after' => 5,
+            'kancing_after' => $kancingValue,
             'reason' => 'reset'
         ]);
     }

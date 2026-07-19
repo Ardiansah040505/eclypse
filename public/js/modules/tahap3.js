@@ -2,50 +2,30 @@
 // TAHAP 3 - Preparation Room
 // ═══════════════════════════════════════════
 
-// Load questions based on student's selected role (eco card type)
+// Load ALL questions for students (no eco_role filtering anymore)
 async function loadPrepQuestions() {
   try {
-    // Get student's selected eco card role
-    const role = state.selectedEcoRole || 'all';
-    console.log('[DEBUG] loadPrepQuestions called, role:', role);
-    console.log('[DEBUG] state.selectedEcoRole:', state.selectedEcoRole);
-    console.log('[DEBUG] All state keys:', Object.keys(state));
-
-    const res = await fetch('/api/preparation/questions?role=' + encodeURIComponent(role));
+    // Load ALL prep questions since students don't have eco_role anymore
+    const res = await fetch('/api/preparation/questions?role=all');
     const data = await res.json();
-    console.log('[DEBUG] API response:', data);
     if (data.success) state.prepQuestions = data.data || [];
-    console.log('[DEBUG] state.prepQuestions:', state.prepQuestions);
     renderPrepForm();
-  } catch(e) { console.error('[DEBUG] Error loading prep questions:', e); }
+  } catch(e) { console.error('Error loading prep questions:', e); }
 }
 
 // Render pertanyaan
 function renderPrepForm() {
   const container = document.getElementById('prepFormContainer');
   const actions = document.getElementById('prepFormActions');
-  const debugInfo = document.getElementById('debugPrepInfo');
-  const debugRole = document.getElementById('debugRole');
-  const debugCount = document.getElementById('debugCount');
 
-  // Tampilkan debug info
-  if (debugInfo) debugInfo.style.display = 'block';
-  if (debugRole) debugRole.textContent = state.selectedEcoRole || 'all';
-  if (debugCount) debugCount.textContent = state.prepQuestions?.length || 0;
-
-  console.log('[DEBUG] renderPrepForm called, container exists:', !!container);
   if (!container) return;
 
-  console.log('[DEBUG] prepQuestions length:', state.prepQuestions?.length);
-
   if (!state.prepQuestions || state.prepQuestions.length === 0) {
-    console.log('[DEBUG] No questions, hiding container');
     container.style.display = 'none';
     if (actions) actions.style.display = 'none';
     return;
   }
 
-  console.log('[DEBUG] Showing questions:', state.prepQuestions);
   container.style.display = 'block';
   if (actions) actions.style.display = 'flex';
 
@@ -154,7 +134,7 @@ function renderTahap3() {
         return student ? student.name : member;
       }).filter(Boolean);
       return `<div class="group-card">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%">
           <div>
             <div class="group-name">${group.icon || '👥'} ${group.name}</div>
             <div class="group-members">${members.length ? members.join(', ') : 'Belum ada anggota'}</div>
@@ -208,8 +188,23 @@ function renderTahap3() {
             <span style="font-weight:bold">Anggota Kelompok:</span>
             <p style="margin:4px 0 0 0;font-size:0.9rem;color:var(--dark)">${membersList}</p>
           </div>
+          
+          <!-- Chat Box -->
+          <div class="group-chat-box">
+            <div style="background:var(--green-mid);color:white;padding:10px 12px;font-weight:700;font-size:0.85rem;display:flex;align-items:center;gap:6px">
+              💬 Obrolan Kelompok
+            </div>
+            <div id="groupChatMessages" class="group-chat-messages">
+              <div style="text-align:center;color:var(--gray);font-size:0.8rem;margin-top:2rem">Memuat pesan...</div>
+            </div>
+            <div class="chat-input-area">
+              <input type="text" id="groupChatInput" placeholder="Ketik pesan..." onkeypress="if(event.key === 'Enter') sendGroupChat()">
+              <button onclick="sendGroupChat()">Kirim</button>
+            </div>
+          </div>
         </div>
       `;
+      startChatPolling();
     } else {
       groupsContainer.innerHTML = `
         <div class="my-group-container" style="background:#fff3cd; border: 2px solid #ffeeba; padding: 1.25rem; border-radius: 12px; margin-top: 1rem; color: #856404;">
@@ -246,6 +241,7 @@ async function assignStudentToGroup(studentId, groupId) {
 
 async function addGroup() {
   const name = document.getElementById('groupName')?.value?.trim();
+  const memberCount = parseInt(document.getElementById('groupMemberCount')?.value) || 5;
   if (!name) { showToast('⚠️ Isi nama kelompok!'); return; }
   const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
@@ -256,12 +252,13 @@ async function addGroup() {
     await fetch('/api/groups', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, icon })
+      body: JSON.stringify({ name, icon, member_count: memberCount })
     });
 
     closeModal('modal-addgroup');
     showToast('✅ Kelompok ditambahkan!');
     if (document.getElementById('groupName')) document.getElementById('groupName').value = '';
+    if (document.getElementById('groupMemberCount')) document.getElementById('groupMemberCount').value = '5';
     await loadGroupsAndStudents();
   } catch (e) {
     console.error(e);
@@ -292,6 +289,100 @@ async function deleteGroup(groupId, groupName) {
   }
 }
 
+// Group Chat Logic
+let chatPollingInterval = null;
+let lastChatCount = 0;
+
+function startChatPolling() {
+  if (chatPollingInterval) clearInterval(chatPollingInterval);
+  loadGroupChat(); // Initial load
+  chatPollingInterval = setInterval(loadGroupChat, 3000);
+}
+
+function stopChatPolling() {
+  if (chatPollingInterval) {
+    clearInterval(chatPollingInterval);
+    chatPollingInterval = null;
+  }
+}
+
+async function loadGroupChat() {
+  if (!state.myGroup) return;
+  try {
+    const res = await fetch(`/api/groups/${state.myGroup.id}/chat`);
+    const data = await res.json();
+    if (data.success) {
+      renderChatMessages(data.data);
+    }
+  } catch (e) {
+    console.error('Error loading chat:', e);
+  }
+}
+
+function renderChatMessages(messages) {
+  const container = document.getElementById('groupChatMessages');
+  if (!container) return;
+  
+  if (messages.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--gray);font-size:0.8rem;margin-top:2rem">Belum ada obrolan. Mulai sapa teman kelompokmu!</div>';
+    lastChatCount = 0;
+    return;
+  }
+
+  // Only auto-scroll if new messages arrived
+  const shouldScroll = messages.length > lastChatCount;
+  
+  container.innerHTML = messages.map(msg => {
+    const isMine = msg.student_id == state.user?.id;
+    return `
+      <div class="chat-msg ${isMine ? 'mine' : 'others'}">
+        ${!isMine ? `<div class="chat-sender">${msg.student_name}</div>` : ''}
+        <div class="chat-bubble">${msg.message}</div>
+        <span class="chat-time">${msg.time}</span>
+      </div>
+    `;
+  }).join('');
+  
+  if (shouldScroll) {
+    container.scrollTop = container.scrollHeight;
+    lastChatCount = messages.length;
+  }
+}
+
+async function sendGroupChat() {
+  const input = document.getElementById('groupChatInput');
+  if (!input) return;
+  const msg = input.value.trim();
+  if (!msg || !state.myGroup) return;
+  
+  input.value = ''; // clear immediately for better UX
+  
+  try {
+    await fetch(`/api/groups/${state.myGroup.id}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: state.user?.id, message: msg })
+    });
+    // Immediately reload
+    await loadGroupChat();
+  } catch (e) {
+    console.error('Error sending chat:', e);
+    showToast('⚠️ Gagal mengirim pesan');
+  }
+}
+
+// Hook to stop polling when leaving page if needed
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.target.id === 'page-tahap3' && mutation.target.style.display === 'none') {
+      stopChatPolling();
+    }
+  });
+});
+const page3 = document.getElementById('page-tahap3');
+if (page3) observer.observe(page3, { attributes: true, attributeFilter: ['style'] });
+
+
 // Export
 window.loadPrepQuestions = loadPrepQuestions;
 window.submitPrepAnswers = submitPrepAnswers;
@@ -301,4 +392,5 @@ window.renderTahap3 = renderTahap3;
 window.loadGroupsAndStudents = loadGroupsAndStudents;
 window.loadStudentGroupInfo = loadStudentGroupInfo;
 window.assignStudentToGroup = assignStudentToGroup;
+window.sendGroupChat = sendGroupChat;
 
