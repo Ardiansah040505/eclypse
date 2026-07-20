@@ -314,3 +314,40 @@
   </div>
 </div>
 
+{{-- Modal: Kelola Pertanyaan (Tahap 3) --}}
+<div class="modal-overlay" id="modal-manage-questions">
+  <div class="modal-box" style="max-width:600px; max-height:90vh; overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ Kelola Pertanyaan Persiapan</div>
+      <button class="modal-close" onclick="closeModal('modal-manage-questions')">✕</button>
+    </div>
+    <div class="modal-form">
+      <div style="background:var(--green-pale);padding:1rem;border-radius:8px;margin-bottom:1rem">
+        <h4 style="margin-top:0;margin-bottom:0.5rem;color:var(--green-deep)">➕ Tambah Pertanyaan Baru</h4>
+        <input type="hidden" id="prepQuestionId">
+        <div style="margin-bottom:0.75rem">
+          <label>Pertanyaan</label>
+          <textarea id="prepQuestionText" placeholder="Tuliskan pertanyaan diskusi untuk siswa..." style="width:100%;min-height:60px;padding:10px;border:2px solid var(--green);border-radius:8px;font-size:0.9rem;resize:vertical;font-family:'Nunito',sans-serif"></textarea>
+        </div>
+        <div style="margin-bottom:0.75rem">
+          <label>Role</label>
+          <select id="prepQuestionRole" style="width:100%;padding:10px;border:2px solid var(--green);border-radius:8px;font-size:0.9rem">
+            <option value="all">Semua Role</option>
+            <option value="peneliti">Peneliti</option>
+            <option value="aktivis">Aktivis</option>
+            <option value="pedagang">Pedagang</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:0.5rem">
+          <button class="btn-sm green" onclick="savePrepQuestion()">💾 Simpan Pertanyaan</button>
+          <button class="btn-sm" style="background:var(--gray-200);color:var(--dark);display:none" id="btnCancelEditPrep" onclick="resetPrepQuestionForm()">Batal Edit</button>
+        </div>
+      </div>
+      
+      <h4 style="margin-bottom:0.5rem">📋 Daftar Pertanyaan</h4>
+      <div id="adminPrepQuestionsList" style="display:flex;flex-direction:column;gap:10px">
+        <div style="text-align:center;color:var(--gray);padding:1rem">Memuat...</div>
+      </div>
+    </div>
+  </div>
+</div>

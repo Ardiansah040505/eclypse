@@ -31,7 +31,10 @@ function renderPrepForm() {
 
   container.innerHTML = `
     <div style="background:white;border:2px solid var(--green);border-radius:16px;padding:1.5rem;margin-bottom:1rem">
-      <h3 style="margin:0 0 0.5rem 0;color:var(--green-deep);display:flex;align-items:center;gap:0.5rem">📋 Pertanyaan Persiapan</h3>
+      <h3 style="margin:0 0 0.5rem 0;color:var(--green-deep);display:flex;align-items:center;gap:0.5rem">
+        📋 Pertanyaan Persiapan
+        ${state.isAdmin ? `<button class="btn-sm green" style="margin-left:auto;font-size:0.75rem;padding:4px 10px" onclick="openManagePrepQuestions()">⚙️ Kelola Pertanyaan</button>` : ''}
+      </h3>
       <p style="font-size:0.85rem;color:var(--gray);margin:0 0 1.25rem 0">Jawab pertanyaan berikut berdasarkan eco cards yang kamu pilih.</p>
       ${state.prepQuestions.map((q, i) => `
         <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--green-pale)">
@@ -383,6 +386,128 @@ const page3 = document.getElementById('page-tahap3');
 if (page3) observer.observe(page3, { attributes: true, attributeFilter: ['style'] });
 
 
+// --- Admin Manage Prep Questions ---
+async function openManagePrepQuestions() {
+  openModal('modal-manage-questions');
+  resetPrepQuestionForm();
+  await loadAdminPrepQuestions();
+}
+
+async function loadAdminPrepQuestions() {
+  const container = document.getElementById('adminPrepQuestionsList');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem">Memuat...</div>';
+  
+  try {
+    const res = await fetch('/api/admin/prep-questions', {
+      headers: { 'X-Admin-Id': state.adminId }
+    });
+    const data = await res.json();
+    if (data.success) {
+      renderAdminPrepQuestions(data.data);
+    } else {
+      container.innerHTML = `<div style="color:red;padding:1rem">${data.message}</div>`;
+    }
+  } catch (e) {
+    container.innerHTML = `<div style="color:red;padding:1rem">Gagal memuat pertanyaan</div>`;
+  }
+}
+
+function renderAdminPrepQuestions(questions) {
+  const container = document.getElementById('adminPrepQuestionsList');
+  if (!container) return;
+  
+  if (questions.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem">Belum ada pertanyaan.</div>';
+    return;
+  }
+  
+  container.innerHTML = questions.map(q => `
+    <div style="background:white;border:1px solid var(--green-pale);border-radius:8px;padding:1rem;display:flex;flex-direction:column;gap:8px">
+      <div style="font-weight:700;color:var(--dark)">${q.question_text}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:0.8rem;background:var(--green-pale);color:var(--green-deep);padding:2px 8px;border-radius:12px">Role: ${q.role}</span>
+        <div style="display:flex;gap:4px">
+          <button class="btn-sm yellow" style="padding:4px 8px;font-size:0.75rem" onclick="editPrepQuestion(${q.id}, \`${q.question_text.replace(/`/g, '\\`')}\`, '${q.role}')">✏️ Edit</button>
+          <button class="btn-sm" style="background:#ff6b6b;color:white;padding:4px 8px;font-size:0.75rem" onclick="deletePrepQuestion(${q.id})">🗑 Hapus</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function editPrepQuestion(id, text, role) {
+  document.getElementById('prepQuestionId').value = id;
+  document.getElementById('prepQuestionText').value = text;
+  document.getElementById('prepQuestionRole').value = role;
+  document.getElementById('btnCancelEditPrep').style.display = 'inline-block';
+  document.getElementById('prepQuestionText').focus();
+}
+
+function resetPrepQuestionForm() {
+  document.getElementById('prepQuestionId').value = '';
+  document.getElementById('prepQuestionText').value = '';
+  document.getElementById('prepQuestionRole').value = 'all';
+  document.getElementById('btnCancelEditPrep').style.display = 'none';
+}
+
+async function savePrepQuestion() {
+  const id = document.getElementById('prepQuestionId').value;
+  const text = document.getElementById('prepQuestionText').value.trim();
+  const role = document.getElementById('prepQuestionRole').value;
+  
+  if (!text) {
+    showToast('⚠️ Pertanyaan tidak boleh kosong');
+    return;
+  }
+  
+  const url = id ? `/api/admin/prep-questions/${id}` : '/api/admin/prep-questions';
+  const method = id ? 'PUT' : 'POST';
+  
+  try {
+    const res = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Id': state.adminId
+      },
+      body: JSON.stringify({ question_text: text, role: role })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(id ? '✅ Pertanyaan diperbarui' : '✅ Pertanyaan ditambahkan');
+      resetPrepQuestionForm();
+      loadAdminPrepQuestions();
+      // Reload for all users indirectly by updating state if needed, 
+      // but admin isn't playing. Just reload admin's view.
+    } else {
+      showToast('⚠️ Gagal menyimpan pertanyaan');
+    }
+  } catch (e) {
+    showToast('⚠️ Terjadi kesalahan');
+  }
+}
+
+async function deletePrepQuestion(id) {
+  if (!confirm('Apakah Anda yakin ingin menghapus pertanyaan ini?')) return;
+  
+  try {
+    const res = await fetch(`/api/admin/prep-questions/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-Admin-Id': state.adminId }
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✅ Pertanyaan dihapus');
+      loadAdminPrepQuestions();
+    } else {
+      showToast('⚠️ Gagal menghapus pertanyaan');
+    }
+  } catch (e) {
+    showToast('⚠️ Terjadi kesalahan');
+  }
+}
+
 // Export
 window.loadPrepQuestions = loadPrepQuestions;
 window.submitPrepAnswers = submitPrepAnswers;
@@ -393,4 +518,9 @@ window.loadGroupsAndStudents = loadGroupsAndStudents;
 window.loadStudentGroupInfo = loadStudentGroupInfo;
 window.assignStudentToGroup = assignStudentToGroup;
 window.sendGroupChat = sendGroupChat;
+window.openManagePrepQuestions = openManagePrepQuestions;
+window.savePrepQuestion = savePrepQuestion;
+window.editPrepQuestion = editPrepQuestion;
+window.deletePrepQuestion = deletePrepQuestion;
+window.resetPrepQuestionForm = resetPrepQuestionForm;
 
