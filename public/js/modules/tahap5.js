@@ -21,8 +21,8 @@ async function renderTahap5() {
     if (studentView) studentView.style.display = 'none';
     if (adminView) adminView.style.display = 'block';
     if (recapPanel) recapPanel.style.display = 'block';
-    // Load prep questions for admin (CRUD panel)
-    await loadAdminPrepQuestions();
+    // Load refleksi questions for admin (CRUD panel)
+    await loadAdminRefleksiQuestions();
   } else {
     if (studentView) studentView.style.display = 'block';
     if (adminView) adminView.style.display = 'none';
@@ -496,14 +496,14 @@ async function submitStudentRefleksiAnswers() {
 
 
 // ══════════════════ REFLEKSI QUESTIONS MANAGEMENT (ADMIN) ══════════════════
-let prepQuestionsState = {
+let refleksiQuestionsState = {
   allQuestions: [],
   filteredQuestions: [],
   currentFilter: 'all'
 };
 
 // Load refleksi questions for admin (CRUD panel)
-async function loadAdminPrepQuestions() {
+async function loadAdminRefleksiQuestions() {
   try {
     const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const res = await fetch('/api/refleksi-questions', {
@@ -515,17 +515,17 @@ async function loadAdminPrepQuestions() {
     const data = await res.json();
 
     if (data.success) {
-      prepQuestionsState.allQuestions = data.data || [];
-      filterPrepQuestions(prepQuestionsState.currentFilter);
+      refleksiQuestionsState.allQuestions = data.data || [];
+      filterRefleksiQuestions(refleksiQuestionsState.currentFilter);
     }
   } catch (e) {
     console.error('Error loading admin refleksi questions:', e);
   }
 }
 
-// Filter prep questions by role
-function filterPrepQuestions(role) {
-  prepQuestionsState.currentFilter = role;
+// Filter refleksi questions by role
+function filterRefleksiQuestions(role) {
+  refleksiQuestionsState.currentFilter = role;
 
   // Update tab styles
   document.querySelectorAll('#adminPrepQuestionsPanel .filter-tab').forEach(tab => {
@@ -533,22 +533,22 @@ function filterPrepQuestions(role) {
   });
 
   if (role === 'all') {
-    prepQuestionsState.filteredQuestions = prepQuestionsState.allQuestions;
+    refleksiQuestionsState.filteredQuestions = refleksiQuestionsState.allQuestions;
   } else {
-    prepQuestionsState.filteredQuestions = prepQuestionsState.allQuestions.filter(q => q.role === role);
+    refleksiQuestionsState.filteredQuestions = refleksiQuestionsState.allQuestions.filter(q => q.role === role);
   }
 
-  renderPrepQuestions();
+  renderRefleksiQuestions();
 }
 
-// Render prep questions list
-function renderPrepQuestions() {
+// Render refleksi questions list
+function renderRefleksiQuestions() {
   const container = document.getElementById('prepQuestionsList');
   const noMessage = document.getElementById('noPrepQuestionsMessage');
 
   if (!container) return;
 
-  const questions = prepQuestionsState.filteredQuestions;
+  const questions = refleksiQuestionsState.filteredQuestions;
 
   if (questions.length === 0) {
     container.innerHTML = '';
@@ -577,31 +577,31 @@ function renderPrepQuestions() {
           <div style="font-size:0.9rem;color:var(--dark)">${q.question_text}</div>
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
-          <button class="btn-sm" style="background:var(--green-pale);color:var(--green-deep);padding:4px 10px;font-size:0.72rem" onclick="editPrepQuestion(${q.id})">✏️ Edit</button>
-          <button class="btn-sm" style="background:#fee2e2;color:#dc2626;padding:4px 10px;font-size:0.72rem" onclick="deletePrepQuestion(${q.id})">🗑️</button>
+          <button class="btn-sm" style="background:var(--green-pale);color:var(--green-deep);padding:4px 10px;font-size:0.72rem" onclick="editRefleksiQuestion(${q.id})">✏️ Edit</button>
+          <button class="btn-sm" style="background:#fee2e2;color:#dc2626;padding:4px 10px;font-size:0.72rem" onclick="deleteRefleksiQuestion(${q.id})">🗑️</button>
         </div>
       </div>
     `;
   }).join('');
 }
 
-// Open add question modal
-let editingPrepQuestionId = null;
+// Open add refleksi question modal
+let editingRefleksiQuestionId = null;
 
-function openAddPrepQuestion() {
-  editingPrepQuestionId = null;
+function openAddRefleksiQuestion() {
+  editingRefleksiQuestionId = null;
   document.getElementById('prepQuestionText').value = '';
   document.getElementById('prepQuestionRole').value = 'peneliti';
   document.getElementById('prepQuestionSaveBtn').textContent = '💾 Simpan';
   openModal('modal-prep-question');
 }
 
-// Edit existing question
-function editPrepQuestion(id) {
-  const question = prepQuestionsState.allQuestions.find(q => q.id == id);
+// Edit existing refleksi question
+function editRefleksiQuestion(id) {
+  const question = refleksiQuestionsState.allQuestions.find(q => q.id == id);
   if (!question) return;
 
-  editingPrepQuestionId = id;
+  editingRefleksiQuestionId = id;
   document.getElementById('prepQuestionText').value = question.question_text;
   document.getElementById('prepQuestionRole').value = question.role;
   document.getElementById('prepQuestionSaveBtn').textContent = '💾 Update';
@@ -609,7 +609,7 @@ function editPrepQuestion(id) {
 }
 
 // Save refleksi question (add or update)
-async function savePrepQuestion() {
+async function saveRefleksiQuestion() {
   const text = document.getElementById('prepQuestionText')?.value?.trim();
   const role = document.getElementById('prepQuestionRole')?.value;
 
@@ -624,8 +624,8 @@ async function savePrepQuestion() {
     let method = 'POST';
     let body = JSON.stringify({ question_text: text, role });
 
-    if (editingPrepQuestionId) {
-      url = `/api/refleksi-questions/${editingPrepQuestionId}`;
+    if (editingRefleksiQuestionId) {
+      url = `/api/refleksi-questions/${editingRefleksiQuestionId}`;
       method = 'PUT';
       body = JSON.stringify({ question_text: text, role });
     }
@@ -644,8 +644,8 @@ async function savePrepQuestion() {
 
     if (data.success) {
       closeModal('modal-prep-question');
-      await loadAdminPrepQuestions();
-      showToast(editingPrepQuestionId ? '✅ Pertanyaan refleksi berhasil diperbarui!' : '✅ Pertanyaan refleksi berhasil ditambahkan!');
+      await loadAdminRefleksiQuestions();
+      showToast(editingRefleksiQuestionId ? '✅ Pertanyaan refleksi berhasil diperbarui!' : '✅ Pertanyaan refleksi berhasil ditambahkan!');
     } else {
       showToast('⚠️ ' + (data.message || 'Gagal menyimpan pertanyaan'));
     }
@@ -656,7 +656,7 @@ async function savePrepQuestion() {
 }
 
 // Delete refleksi question
-async function deletePrepQuestion(id) {
+async function deleteRefleksiQuestion(id) {
   if (!confirm('Yakin ingin menghapus pertanyaan ini?')) return;
 
   try {
@@ -673,7 +673,7 @@ async function deletePrepQuestion(id) {
     const data = await res.json();
 
     if (data.success) {
-      await loadAdminPrepQuestions();
+      await loadAdminRefleksiQuestions();
       showToast('🗑️ Pertanyaan refleksi berhasil dihapus!');
     } else {
       showToast('⚠️ ' + (data.message || 'Gagal menghapus pertanyaan'));
@@ -684,22 +684,27 @@ async function deletePrepQuestion(id) {
   }
 }
 
+// Also keep the old tahap3 function names pointing to tahap3.js functions (via export)
+// These exports are kept for tahap3.js backward compat (but tahap3 exports come first)
+// Since both files export same names to window, tahap5 overwrites tahap3.
+// We now export NEW unique names so they don't collide.
+
 // Export functions globally
 window.renderTahap5 = renderTahap5;
 window.submitRefleksi = submitRefleksi;
-window.replyComment = replyComment;
 window.filterRefleksi = filterRefleksi;
 window.openAnswerModal = openAnswerModal;
 window.sendAnswer = sendAnswer;
 window.deleteReflection = deleteReflection;
-// Admin refleksi questions (CRUD panel)
-window.loadAdminPrepQuestions = loadAdminPrepQuestions;
+// Admin refleksi questions (CRUD panel) — unique names to avoid collision with tahap3
+window.loadAdminRefleksiQuestions = loadAdminRefleksiQuestions;
+window.filterRefleksiQuestions = filterRefleksiQuestions;
+window.renderRefleksiQuestions = renderRefleksiQuestions;
+window.openAddRefleksiQuestion = openAddRefleksiQuestion;
+window.editRefleksiQuestion = editRefleksiQuestion;
+window.saveRefleksiQuestion = saveRefleksiQuestion;
+window.deleteRefleksiQuestion = deleteRefleksiQuestion;
 // Student refleksi questions (tahap 5)
 window.loadStudentPrepQuestions = loadStudentPrepQuestions;
 window.submitStudentRefleksiAnswers = submitStudentRefleksiAnswers;
-window.filterPrepQuestions = filterPrepQuestions;
-window.openAddPrepQuestion = openAddPrepQuestion;
-window.editPrepQuestion = editPrepQuestion;
-window.savePrepQuestion = savePrepQuestion;
-window.deletePrepQuestion = deletePrepQuestion;
 

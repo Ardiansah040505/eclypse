@@ -36,6 +36,8 @@ function goTo(page) {
     renderTahap3();
     if (state.isAdmin) {
       loadGroupsAndStudents();
+      // Pre-load admin prep questions for faster modal opening
+      loadAdminPrepQuestions();
     } else {
       loadStudentGroupInfo();
     }

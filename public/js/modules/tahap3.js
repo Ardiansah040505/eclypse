@@ -2,6 +2,11 @@
 // TAHAP 3 - Preparation Room
 // ═══════════════════════════════════════════
 
+// Cache for admin prep questions (for faster modal loading)
+let cachedAdminPrepQuestions = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 30000; // 30 detik cache
+
 // Load ALL questions for students (no eco_role filtering anymore)
 async function loadPrepQuestions() {
   try {
@@ -390,126 +395,211 @@ if (page3) observer.observe(page3, { attributes: true, attributeFilter: ['style'
 async function openManagePrepQuestions() {
   openModal('modal-manage-questions');
   resetPrepQuestionForm();
+
+  // Selalu tampilkan loading saat modal dibuka
+  const container = document.getElementById('adminPrepQuestionsList');
+  if (container) {
+    container.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem">Memuat...</div>';
+  }
+
+  // Tampilkan data cached dulu (instant display)
+  if (cachedAdminPrepQuestions !== null && cachedAdminPrepQuestions.length > 0) {
+    renderAdminPrepQuestions(cachedAdminPrepQuestions);
+  }
+
+  // Fetch data terbaru (di background)
   await loadAdminPrepQuestions();
 }
 
 async function loadAdminPrepQuestions() {
   const container = document.getElementById('adminPrepQuestionsList');
   if (!container) return;
-  container.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem">Memuat...</div>';
-  
+
+  console.log('Loading admin prep questions...', { userId: state.user?.id, isAdmin: state.isAdmin });
+
   try {
-    const res = await fetch('/api/admin/prep-questions', {
-      headers: { 'X-Admin-Id': state.adminId }
-    });
-    const data = await res.json();
+    // Pakai Promise.race dengan timeout 10 detik
+    const response = await Promise.race([
+      fetch('/api/admin/prep-questions', {
+        headers: {
+          'X-Admin-Id': state.user?.id || ''
+        }
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
+    ]);
+
+    console.log('Response status:', response.status);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('API Response:', data);
+
     if (data.success) {
-      renderAdminPrepQuestions(data.data);
+      cachedAdminPrepQuestions = data.data || [];
+      lastFetchTime = Date.now();
+      renderAdminPrepQuestions(cachedAdminPrepQuestions);
     } else {
-      container.innerHTML = `<div style="color:red;padding:1rem">${data.message}</div>`;
+      container.innerHTML = `<div style="color:red;padding:1rem">Error: ${data.message || 'Unknown error'}</div>`;
     }
   } catch (e) {
-    container.innerHTML = `<div style="color:red;padding:1rem">Gagal memuat pertanyaan</div>`;
+    console.error('Fetch error:', e);
+    if (e.message === 'timeout') {
+      container.innerHTML = `<div style="color:#f59e0b;padding:1rem">⚠️ Waktu habis. Coba klik 🔄 Refresh.</div>`;
+    } else {
+      container.innerHTML = `<div style="color:red;padding:1rem">Gagal memuat: ${e.message}</div>`;
+    }
   }
+}
+
+// Reload questions (bypass cache) - dipanggil dari tombol Refresh
+async function reloadAdminPrepQuestions() {
+  const container = document.getElementById('adminPrepQuestionsList');
+  if (container) {
+    container.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem">Memuat...</div>';
+  }
+  // Clear cache dan reload
+  cachedAdminPrepQuestions = null;
+  lastFetchTime = 0;
+  await loadAdminPrepQuestions();
 }
 
 function renderAdminPrepQuestions(questions) {
   const container = document.getElementById('adminPrepQuestionsList');
   if (!container) return;
-  
+
   if (questions.length === 0) {
     container.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem">Belum ada pertanyaan.</div>';
     return;
   }
-  
-  container.innerHTML = questions.map(q => `
+
+  container.innerHTML = questions.map(q => {
+    // Escape HTML untuk security dan hindari masalah onclick
+    const escapedText = q.question_text
+      .replace(/\\/g, '\\\\')
+      .replace(/`/g, '\\`')
+      .replace(/'/g, "\\'")
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, ' ');
+
+    return `
     <div style="background:white;border:1px solid var(--green-pale);border-radius:8px;padding:1rem;display:flex;flex-direction:column;gap:8px">
-      <div style="font-weight:700;color:var(--dark)">${q.question_text}</div>
+      <div style="font-weight:700;color:var(--dark)">${escapeHtml(q.question_text)}</div>
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:0.8rem;background:var(--green-pale);color:var(--green-deep);padding:2px 8px;border-radius:12px">Role: ${q.role}</span>
+        <span style="font-size:0.8rem;background:var(--green-pale);color:var(--green-deep);padding:2px 8px;border-radius:12px">Role: ${escapeHtml(q.role)}</span>
         <div style="display:flex;gap:4px">
-          <button class="btn-sm yellow" style="padding:4px 8px;font-size:0.75rem" onclick="editPrepQuestion(${q.id}, \`${q.question_text.replace(/`/g, '\\`')}\`, '${q.role}')">✏️ Edit</button>
+          <button class="btn-sm yellow" style="padding:4px 8px;font-size:0.75rem" onclick="editPrepQuestion(${q.id}, \`${escapedText}\`, '${q.role}')">✏️ Edit</button>
           <button class="btn-sm" style="background:#ff6b6b;color:white;padding:4px 8px;font-size:0.75rem" onclick="deletePrepQuestion(${q.id})">🗑 Hapus</button>
         </div>
       </div>
     </div>
-  `).join('');
+  `}).join('');
+}
+
+// Helper: Escape HTML untuk mencegah XSS
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function editPrepQuestion(id, text, role) {
-  document.getElementById('prepQuestionId').value = id;
-  document.getElementById('prepQuestionText').value = text;
-  document.getElementById('prepQuestionRole').value = role;
-  document.getElementById('btnCancelEditPrep').style.display = 'inline-block';
-  document.getElementById('prepQuestionText').focus();
+  console.log('Editing question:', { id, text, role });
+  document.getElementById('tahap3PrepQuestionId').value = id;
+  document.getElementById('tahap3PrepQuestionText').value = text;
+  document.getElementById('tahap3PrepQuestionRole').value = role;
+  document.getElementById('tahap3BtnCancelEditPrep').style.display = 'inline-block';
+  document.getElementById('tahap3PrepQuestionText').focus();
 }
 
 function resetPrepQuestionForm() {
-  document.getElementById('prepQuestionId').value = '';
-  document.getElementById('prepQuestionText').value = '';
-  document.getElementById('prepQuestionRole').value = 'all';
-  document.getElementById('btnCancelEditPrep').style.display = 'none';
+  document.getElementById('tahap3PrepQuestionId').value = '';
+  document.getElementById('tahap3PrepQuestionText').value = '';
+  document.getElementById('tahap3PrepQuestionRole').value = 'all';
+  document.getElementById('tahap3BtnCancelEditPrep').style.display = 'none';
 }
 
-async function savePrepQuestion() {
-  const id = document.getElementById('prepQuestionId').value;
-  const text = document.getElementById('prepQuestionText').value.trim();
-  const role = document.getElementById('prepQuestionRole').value;
-  
+async function saveTahap3PrepQuestion() {
+  const id = document.getElementById('tahap3PrepQuestionId').value;
+  const text = document.getElementById('tahap3PrepQuestionText').value.trim();
+  const role = document.getElementById('tahap3PrepQuestionRole').value;
+
+  console.log('Saving question:', { id, text, role, isEditing: !!id });
+
   if (!text) {
     showToast('⚠️ Pertanyaan tidak boleh kosong');
     return;
   }
-  
+
   const url = id ? `/api/admin/prep-questions/${id}` : '/api/admin/prep-questions';
   const method = id ? 'PUT' : 'POST';
-  
+
   try {
     const res = await fetch(url, {
       method: method,
       headers: {
         'Content-Type': 'application/json',
-        'X-Admin-Id': state.adminId
+        'X-Admin-Id': state.user?.id || ''
       },
       body: JSON.stringify({ question_text: text, role: role })
     });
     const data = await res.json();
+    console.log('Save response:', data);
     if (data.success) {
-      showToast(id ? '✅ Pertanyaan diperbarui' : '✅ Pertanyaan ditambahkan');
+      showToast(id ? '✅ Pertanyaan berhasil diperbarui' : '✅ Pertanyaan berhasil ditambahkan');
       resetPrepQuestionForm();
-      loadAdminPrepQuestions();
-      // Reload for all users indirectly by updating state if needed, 
-      // but admin isn't playing. Just reload admin's view.
+      // Invalidate cache dan reload
+      cachedAdminPrepQuestions = null;
+      lastFetchTime = 0;
+      await loadAdminPrepQuestions();
     } else {
-      showToast('⚠️ Gagal menyimpan pertanyaan');
+      showToast('⚠️ Gagal menyimpan pertanyaan: ' + (data.message || 'Unknown error'));
     }
   } catch (e) {
-    showToast('⚠️ Terjadi kesalahan');
+    console.error('Save error:', e);
+    showToast('⚠️ Terjadi kesalahan saat menyimpan');
   }
 }
 
 async function deletePrepQuestion(id) {
   if (!confirm('Apakah Anda yakin ingin menghapus pertanyaan ini?')) return;
-  
+
+  console.log('Deleting question ID:', id, 'Admin ID:', state.user?.id);
+
   try {
     const res = await fetch(`/api/admin/prep-questions/${id}`, {
       method: 'DELETE',
-      headers: { 'X-Admin-Id': state.adminId }
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Id': state.user?.id || ''
+      }
     });
+
     const data = await res.json();
+    console.log('Delete response:', data);
+
     if (data.success) {
-      showToast('✅ Pertanyaan dihapus');
-      loadAdminPrepQuestions();
+      showToast('✅ Pertanyaan berhasil dihapus');
+      // Invalidate cache dan reload
+      cachedAdminPrepQuestions = null;
+      lastFetchTime = 0;
+      await loadAdminPrepQuestions();
     } else {
-      showToast('⚠️ Gagal menghapus pertanyaan');
+      showToast('⚠️ Gagal menghapus pertanyaan: ' + (data.message || 'Unknown error'));
     }
   } catch (e) {
-    showToast('⚠️ Terjadi kesalahan');
+    console.error('Delete error:', e);
+    showToast('⚠️ Terjadi kesalahan saat menghapus');
   }
 }
 
 // Export
 window.loadPrepQuestions = loadPrepQuestions;
+window.loadAdminPrepQuestions = loadAdminPrepQuestions;
+window.reloadAdminPrepQuestions = reloadAdminPrepQuestions;
 window.submitPrepAnswers = submitPrepAnswers;
 window.addGroup = addGroup;
 window.deleteGroup = deleteGroup;
@@ -519,8 +609,8 @@ window.loadStudentGroupInfo = loadStudentGroupInfo;
 window.assignStudentToGroup = assignStudentToGroup;
 window.sendGroupChat = sendGroupChat;
 window.openManagePrepQuestions = openManagePrepQuestions;
-window.savePrepQuestion = savePrepQuestion;
+window.saveTahap3PrepQuestion = saveTahap3PrepQuestion;
 window.editPrepQuestion = editPrepQuestion;
 window.deletePrepQuestion = deletePrepQuestion;
 window.resetPrepQuestionForm = resetPrepQuestionForm;
-
+window.escapeHtml = escapeHtml;

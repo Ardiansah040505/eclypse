@@ -324,14 +324,14 @@
     <div class="modal-form">
       <div style="background:var(--green-pale);padding:1rem;border-radius:8px;margin-bottom:1rem">
         <h4 style="margin-top:0;margin-bottom:0.5rem;color:var(--green-deep)">➕ Tambah Pertanyaan Baru</h4>
-        <input type="hidden" id="prepQuestionId">
+        <input type="hidden" id="tahap3PrepQuestionId">
         <div style="margin-bottom:0.75rem">
           <label>Pertanyaan</label>
-          <textarea id="prepQuestionText" placeholder="Tuliskan pertanyaan diskusi untuk siswa..." style="width:100%;min-height:60px;padding:10px;border:2px solid var(--green);border-radius:8px;font-size:0.9rem;resize:vertical;font-family:'Nunito',sans-serif"></textarea>
+          <textarea id="tahap3PrepQuestionText" placeholder="Tuliskan pertanyaan diskusi untuk siswa..." style="width:100%;min-height:60px;padding:10px;border:2px solid var(--green);border-radius:8px;font-size:0.9rem;resize:vertical;font-family:'Nunito',sans-serif"></textarea>
         </div>
         <div style="margin-bottom:0.75rem">
           <label>Role</label>
-          <select id="prepQuestionRole" style="width:100%;padding:10px;border:2px solid var(--green);border-radius:8px;font-size:0.9rem">
+          <select id="tahap3PrepQuestionRole" style="width:100%;padding:10px;border:2px solid var(--green);border-radius:8px;font-size:0.9rem">
             <option value="all">Semua Role</option>
             <option value="peneliti">Peneliti</option>
             <option value="aktivis">Aktivis</option>
@@ -339,12 +339,15 @@
           </select>
         </div>
         <div style="display:flex;gap:0.5rem">
-          <button class="btn-sm green" onclick="savePrepQuestion()">💾 Simpan Pertanyaan</button>
-          <button class="btn-sm" style="background:var(--gray-200);color:var(--dark);display:none" id="btnCancelEditPrep" onclick="resetPrepQuestionForm()">Batal Edit</button>
+          <button class="btn-sm green" onclick="saveTahap3PrepQuestion()">💾 Simpan Pertanyaan</button>
+          <button class="btn-sm" style="background:var(--gray-200);color:var(--dark);display:none" id="tahap3BtnCancelEditPrep" onclick="resetPrepQuestionForm()">Batal Edit</button>
         </div>
       </div>
-      
-      <h4 style="margin-bottom:0.5rem">📋 Daftar Pertanyaan</h4>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+        <h4 style="margin:0">📋 Daftar Pertanyaan</h4>
+        <button class="btn-sm" style="background:#6c757d;color:white" onclick="reloadAdminPrepQuestions()">🔄 Refresh</button>
+      </div>
       <div id="adminPrepQuestionsList" style="display:flex;flex-direction:column;gap:10px">
         <div style="text-align:center;color:var(--gray);padding:1rem">Memuat...</div>
       </div>

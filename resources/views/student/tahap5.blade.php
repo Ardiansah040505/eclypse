@@ -77,15 +77,15 @@
             <div style="font-weight:800;font-size:1.05rem;color:var(--dark)">📝 Kelola Pertanyaan Pemantik</div>
             <div style="font-size:0.82rem;color:var(--gray)">Buat pertanyaan berdasarkan role (Peneliti, Aktivis, Pedagang)</div>
           </div>
-          <button class="btn-sm green" onclick="openAddPrepQuestion()">+ Tambah Pertanyaan</button>
+          <button class="btn-sm green" onclick="openAddRefleksiQuestion()">+ Tambah Pertanyaan</button>
         </div>
 
         <div class="filter-tabs" style="margin-bottom:1rem">
-          <button class="filter-tab active" onclick="filterPrepQuestions('all')" data-role="all">📋 Semua</button>
-          <button class="filter-tab" onclick="filterPrepQuestions('peneliti')" data-role="peneliti">🔬 Peneliti</button>
-          <button class="filter-tab" onclick="filterPrepQuestions('aktivis')" data-role="aktivis">🌿 Aktivis</button>
-          <button class="filter-tab" onclick="filterPrepQuestions('pedagang')" data-role="pedagang">🛒 Pedagang</button>
-          <button class="filter-tab" onclick="filterPrepQuestions('all_role')" data-role="all_role">🌐 Universal (Semua)</button>
+          <button class="filter-tab active" onclick="filterRefleksiQuestions('all')" data-role="all">📋 Semua</button>
+          <button class="filter-tab" onclick="filterRefleksiQuestions('peneliti')" data-role="peneliti">🔬 Peneliti</button>
+          <button class="filter-tab" onclick="filterRefleksiQuestions('aktivis')" data-role="aktivis">🌿 Aktivis</button>
+          <button class="filter-tab" onclick="filterRefleksiQuestions('pedagang')" data-role="pedagang">🛒 Pedagang</button>
+          <button class="filter-tab" onclick="filterRefleksiQuestions('all_role')" data-role="all_role">🌐 Universal (Semua)</button>
         </div>
 
         <div id="prepQuestionsList"></div>
@@ -173,7 +173,7 @@
         <textarea id="prepQuestionText" placeholder="Tulis pertanyaan di sini..." style="width:100%;min-height:120px;border:2px solid var(--green-pale);border-radius:8px;padding:0.75rem;font-family:'Nunito',sans-serif;font-size:0.9rem;resize:vertical"></textarea>
       </div>
       <div style="display:flex;gap:0.5rem;margin-top:1rem">
-        <button class="btn-sm green" id="prepQuestionSaveBtn" onclick="savePrepQuestion()">💾 Simpan</button>
+        <button class="btn-sm green" id="prepQuestionSaveBtn" onclick="saveRefleksiQuestion()">💾 Simpan</button>
         <button class="btn-sm" style="background:var(--gray-200);color:var(--dark)" onclick="closeModal('modal-prep-question')">Batal</button>
       </div>
     </div>
