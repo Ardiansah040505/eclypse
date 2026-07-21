@@ -52,7 +52,7 @@ class RefleksiQuestionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'question_text' => 'required|string',
+            'question_text' => 'required|string|max:2000',
             'role' => 'required|string|in:peneliti,aktivis,pedagang,all',
             'order' => 'nullable|integer'
         ]);
@@ -82,7 +82,7 @@ class RefleksiQuestionController extends Controller
         }
 
         $validated = $request->validate([
-            'question_text' => 'required|string',
+            'question_text' => 'required|string|max:2000',
             'role' => 'required|string|in:peneliti,aktivis,pedagang,all',
             'order' => 'nullable|integer'
         ]);

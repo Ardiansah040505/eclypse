@@ -55,7 +55,7 @@ class PrepQuestionController extends Controller
         }
 
         $request->validate([
-            'question_text' => 'required|string|max:1000',
+            'question_text' => 'required|string|max:2000',
             'role' => 'required|in:peneliti,aktivis,pedagang,all',
             'order' => 'nullable|integer'
         ]);

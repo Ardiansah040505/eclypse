@@ -327,7 +327,7 @@
         <input type="hidden" id="tahap3PrepQuestionId">
         <div style="margin-bottom:0.75rem">
           <label>Pertanyaan</label>
-          <textarea id="tahap3PrepQuestionText" placeholder="Tuliskan pertanyaan diskusi untuk siswa..." style="width:100%;min-height:60px;padding:10px;border:2px solid var(--green);border-radius:8px;font-size:0.9rem;resize:vertical;font-family:'Nunito',sans-serif"></textarea>
+          <textarea id="tahap3PrepQuestionText" placeholder="Tuliskan pertanyaan diskusi untuk siswa... (maks 2000 karakter)" maxlength="2000" style="width:100%;min-height:100px;padding:10px;border:2px solid var(--green);border-radius:8px;font-size:0.9rem;resize:vertical;font-family:'Nunito',sans-serif"></textarea>
         </div>
         <div style="margin-bottom:0.75rem">
           <label>Role</label>
