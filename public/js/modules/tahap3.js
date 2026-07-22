@@ -7,10 +7,10 @@ let cachedAdminPrepQuestions = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 30000; // 30 detik cache
 
-// Load ALL questions for students (no eco_role filtering anymore)
+// Load ALL questions for students (show both role-specific AND universal questions)
 async function loadPrepQuestions() {
   try {
-    // Load ALL prep questions since students don't have eco_role anymore
+    // Fetch all questions without role filter so students see both universal AND role-specific
     const res = await fetch('/api/preparation/questions?role=all');
     const data = await res.json();
     if (data.success) state.prepQuestions = data.data || [];
@@ -18,7 +18,7 @@ async function loadPrepQuestions() {
   } catch(e) { console.error('Error loading prep questions:', e); }
 }
 
-// Render pertanyaan
+// Render pertanyaan dengan section per role
 function renderPrepForm() {
   const container = document.getElementById('prepFormContainer');
   const actions = document.getElementById('prepFormActions');
@@ -34,22 +34,66 @@ function renderPrepForm() {
   container.style.display = 'block';
   if (actions) actions.style.display = 'flex';
 
+  // Group questions by role
+  const grouped = { all: [], peneliti: [], aktivis: [], pedagang: [] };
+  let globalIndex = 0;
+  state.prepQuestions.forEach(q => {
+    const role = q.role || 'all';
+    if (grouped.hasOwnProperty(role)) {
+      grouped[role].push({ ...q, globalIndex: globalIndex++ });
+    } else {
+      grouped.all.push({ ...q, globalIndex: globalIndex++ });
+    }
+  });
+
+  const roleConfig = {
+    all:       { emoji: '🌐', label: 'Semua Role', color: '#8b5cf6', border: '#8b5cf6', bg: '#8b5cf620' },
+    peneliti:  { emoji: '🔬', label: 'Peneliti',    color: '#3b82f6', border: '#3b82f6', bg: '#3b82f620' },
+    aktivis:   { emoji: '🌿', label: 'Aktivis',     color: '#22c55e', border: '#22c55e', bg: '#22c55e20' },
+    pedagang:  { emoji: '🛒', label: 'Pedagang',    color: '#f59e0b', border: '#f59e0b', bg: '#f59e0b20' }
+  };
+
+  let sectionsHtml = '';
+  let totalQuestions = 0;
+  let qCounter = 0;
+
+  Object.keys(grouped).forEach(role => {
+    const qs = grouped[role];
+    if (qs.length === 0) return; // Skip empty sections
+    totalQuestions += qs.length;
+
+    const cfg = roleConfig[role];
+    sectionsHtml += `
+      <div style="margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:2px solid ${cfg.border}">
+          <span style="font-size:1.1rem">${cfg.emoji}</span>
+          <span style="font-weight:800;font-size:0.95rem;color:${cfg.color}">${cfg.label}</span>
+          <span style="background:${cfg.bg};color:${cfg.color};font-size:0.72rem;font-weight:700;padding:2px 10px;border-radius:99px;margin-left:4px">${qs.length}</span>
+        </div>
+        ${qs.map(q => {
+          const num = ++qCounter;
+          return `
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #e5e7eb">
+            <div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:${cfg.color};color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.82rem">${num}</div>
+            <div style="flex:1">
+              <div style="font-size:0.9rem;color:var(--dark);line-height:1.5;margin-bottom:0.6rem">${escapeHtml(q.question_text)}</div>
+              <textarea class="prep-textarea" data-qid="${q.id}" placeholder="Tulis jawabanmu..." rows="3" style="width:100%;border:2px solid var(--green-pale);border-radius:10px;padding:0.65rem 0.8rem;font-family:'Nunito',sans-serif;font-size:0.85rem;resize:vertical;box-sizing:border-box;transition:border 0.18s;background:#fafffe" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--green-pale)'"></textarea>
+            </div>
+          </div>
+        `}).join('')}
+      </div>
+    `;
+  });
+
   container.innerHTML = `
     <div style="background:white;border:2px solid var(--green);border-radius:16px;padding:1.5rem;margin-bottom:1rem">
       <h3 style="margin:0 0 0.5rem 0;color:var(--green-deep);display:flex;align-items:center;gap:0.5rem">
         📋 Pertanyaan Persiapan
-        ${state.isAdmin ? `<button class="btn-sm green" style="margin-left:auto;font-size:0.75rem;padding:4px 10px" onclick="openManagePrepQuestions()">⚙️ Kelola Pertanyaan</button>` : ''}
+        <span style="background:var(--green-pale);color:var(--green-deep);font-size:0.72rem;font-weight:700;padding:2px 10px;border-radius:99px;margin-left:4px">${totalQuestions}</span>
+        ${state.isAdmin ? `<button class="btn-sm green" style="margin-left:auto;font-size:0.75rem;padding:4px 10px" onclick="openManagePrepQuestions()">⚙️ Kelola</button>` : ''}
       </h3>
       <p style="font-size:0.85rem;color:var(--gray);margin:0 0 1.25rem 0">Jawab pertanyaan berikut berdasarkan eco cards yang kamu pilih.</p>
-      ${state.prepQuestions.map((q, i) => `
-        <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--green-pale)">
-          <div style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:#fbbf24;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem">${i + 1}</div>
-          <div style="flex:1">
-            <div style="font-size:0.92rem;color:var(--dark);line-height:1.5;margin-bottom:0.75rem">${q.question_text}</div>
-            <textarea class="prep-textarea" data-qid="${q.id}" placeholder="Tulis jawabanmu..." rows="3" style="width:100%;border:2px solid var(--green-pale);border-radius:10px;padding:0.75rem;font-family:'Nunito',sans-serif;font-size:0.85rem;resize:vertical;box-sizing:border-box;transition:border 0.18s;background:#fafffe" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--green-pale)'"></textarea>
-          </div>
-        </div>
-      `).join('')}
+      ${sectionsHtml}
     </div>
   `;
 
@@ -396,34 +440,30 @@ async function openManagePrepQuestions() {
   openModal('modal-manage-questions');
   resetPrepQuestionForm();
 
-  // Selalu tampilkan loading saat modal dibuka
-  const container = document.getElementById('adminPrepQuestionsList');
-  if (container) {
-    container.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem">Memuat...</div>';
-  }
-
-  // Tampilkan data cached dulu (instant display)
+  // Tampilkan data cached dulu jika ada (instant display)
   if (cachedAdminPrepQuestions !== null && cachedAdminPrepQuestions.length > 0) {
     renderAdminPrepQuestions(cachedAdminPrepQuestions);
   }
 
-  // Fetch data terbaru (di background)
+  // Fetch data terbaru dari server
   await loadAdminPrepQuestions();
 }
 
 async function loadAdminPrepQuestions() {
-  const container = document.getElementById('adminPrepQuestionsList');
-  if (!container) return;
-
   console.log('Loading admin prep questions...', { userId: state.user?.id, isAdmin: state.isAdmin });
 
+  // Show loading state di semua section
+  ['all', 'peneliti', 'aktivis', 'pedagang'].forEach(role => {
+    const el = document.getElementById('prep-list-' + role);
+    const countEl = document.getElementById('count-' + role);
+    if (el) el.innerHTML = '<div style="text-align:center;color:var(--gray);padding:0.75rem;font-size:0.85rem">Memuat...</div>';
+    if (countEl) countEl.textContent = '0';
+  });
+
   try {
-    // Pakai Promise.race dengan timeout 10 detik
     const response = await Promise.race([
       fetch('/api/admin/prep-questions', {
-        headers: {
-          'X-Admin-Id': state.user?.id || ''
-        }
+        headers: { 'X-Admin-Id': state.user?.id || '' }
       }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
     ]);
@@ -442,24 +482,35 @@ async function loadAdminPrepQuestions() {
       lastFetchTime = Date.now();
       renderAdminPrepQuestions(cachedAdminPrepQuestions);
     } else {
-      container.innerHTML = `<div style="color:red;padding:1rem">Error: ${data.message || 'Unknown error'}</div>`;
+      // Show error di semua section
+      ['all', 'peneliti', 'aktivis', 'pedagang'].forEach(role => {
+        const el = document.getElementById('prep-list-' + role);
+        if (el) el.innerHTML = `<div style="color:red;padding:0.75rem;font-size:0.85rem;text-align:center">Error: ${data.message || 'Unknown error'}</div>`;
+      });
     }
   } catch (e) {
     console.error('Fetch error:', e);
-    if (e.message === 'timeout') {
-      container.innerHTML = `<div style="color:#f59e0b;padding:1rem">⚠️ Waktu habis. Coba klik 🔄 Refresh.</div>`;
-    } else {
-      container.innerHTML = `<div style="color:red;padding:1rem">Gagal memuat: ${e.message}</div>`;
-    }
+    // Show error di semua section
+    ['all', 'peneliti', 'aktivis', 'pedagang'].forEach(role => {
+      const el = document.getElementById('prep-list-' + role);
+      if (el) {
+        if (e.message === 'timeout') {
+          el.innerHTML = `<div style="color:#f59e0b;padding:0.75rem;font-size:0.85rem;text-align:center">⚠️ Waktu habis (10dtk). Coba klik 🔄 Refresh.</div>`;
+        } else {
+          el.innerHTML = `<div style="color:red;padding:0.75rem;font-size:0.85rem;text-align:center">Gagal memuat: ${e.message}</div>`;
+        }
+      }
+    });
   }
 }
 
 // Reload questions (bypass cache) - dipanggil dari tombol Refresh
 async function reloadAdminPrepQuestions() {
-  const container = document.getElementById('adminPrepQuestionsList');
-  if (container) {
-    container.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem">Memuat...</div>';
-  }
+  // Clear all section containers
+  ['all','peneliti','aktivis','pedagang'].forEach(role => {
+    const el = document.getElementById('prep-list-' + role);
+    if (el) el.innerHTML = '<div style="text-align:center;color:var(--gray);padding:0.75rem;font-size:0.85rem">Memuat...</div>';
+  });
   // Clear cache dan reload
   cachedAdminPrepQuestions = null;
   lastFetchTime = 0;
@@ -467,35 +518,64 @@ async function reloadAdminPrepQuestions() {
 }
 
 function renderAdminPrepQuestions(questions) {
-  const container = document.getElementById('adminPrepQuestionsList');
-  if (!container) return;
+  // Group questions by role
+  const grouped = {
+    all: [],
+    peneliti: [],
+    aktivis: [],
+    pedagang: []
+  };
 
-  if (questions.length === 0) {
-    container.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem">Belum ada pertanyaan.</div>';
-    return;
-  }
+  questions.forEach(q => {
+    if (grouped.hasOwnProperty(q.role)) {
+      grouped[q.role].push(q);
+    } else {
+      grouped.all.push(q);
+    }
+  });
 
-  container.innerHTML = questions.map(q => {
-    // Escape HTML untuk security dan hindari masalah onclick
-    const escapedText = q.question_text
-      .replace(/\\/g, '\\\\')
-      .replace(/`/g, '\\`')
-      .replace(/'/g, "\\'")
-      .replace(/"/g, '\\"')
-      .replace(/\n/g, ' ');
+  // Render each section
+  const roleConfig = {
+    all:       { color: '#8b5cf6', border: '#8b5cf6' },
+    peneliti:  { color: '#3b82f6', border: '#3b82f6' },
+    aktivis:   { color: '#22c55e', border: '#22c55e' },
+    pedagang:  { color: '#f59e0b', border: '#f59e0b' }
+  };
 
-    return `
-    <div style="background:white;border:1px solid var(--green-pale);border-radius:8px;padding:1rem;display:flex;flex-direction:column;gap:8px">
-      <div style="font-weight:700;color:var(--dark)">${escapeHtml(q.question_text)}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:0.8rem;background:var(--green-pale);color:var(--green-deep);padding:2px 8px;border-radius:12px">Role: ${escapeHtml(q.role)}</span>
-        <div style="display:flex;gap:4px">
-          <button class="btn-sm yellow" style="padding:4px 8px;font-size:0.75rem" onclick="editPrepQuestion(${q.id}, \`${escapedText}\`, '${q.role}')">✏️ Edit</button>
-          <button class="btn-sm" style="background:#ff6b6b;color:white;padding:4px 8px;font-size:0.75rem" onclick="deletePrepQuestion(${q.id})">🗑 Hapus</button>
+  Object.keys(grouped).forEach(role => {
+    const container = document.getElementById('prep-list-' + role);
+    const countEl = document.getElementById('count-' + role);
+    if (!container) return;
+
+    const qs = grouped[role];
+
+    // Update count badge
+    if (countEl) countEl.textContent = qs.length;
+
+    if (qs.length === 0) {
+      container.innerHTML = `<div style="text-align:center;color:var(--gray);padding:0.75rem;font-size:0.82rem">Belum ada pertanyaan.</div>`;
+      return;
+    }
+
+    container.innerHTML = qs.map(q => {
+      const cfg = roleConfig[role];
+      return `
+      <div style="background:white;border:1px solid ${cfg.color}30;border-radius:8px;padding:0.75rem;margin-bottom:8px;border-left:3px solid ${cfg.color}">
+        <div style="font-size:0.9rem;color:var(--dark);line-height:1.5;margin-bottom:0.5rem">${escapeHtml(q.question_text)}</div>
+        <div style="display:flex;justify-content:flex-end;gap:6px">
+          <button class="btn-sm yellow" style="padding:3px 10px;font-size:0.72rem" onclick="editPrepQuestion(${q.id}, \`${q.question_text.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\n/g,' ')}\`, '${q.role}')">✏️ Edit</button>
+          <button class="btn-sm" style="background:#fee2e2;color:#dc2626;padding:3px 10px;font-size:0.72rem" onclick="deletePrepQuestion(${q.id})">🗑️</button>
         </div>
       </div>
-    </div>
-  `}).join('');
+    `}).join('');
+  });
+
+  // If NO questions at all, show message
+  const total = questions.length;
+  if (total === 0) {
+    const firstSection = document.getElementById('prep-list-all');
+    if (firstSection) firstSection.innerHTML = '<div style="text-align:center;color:var(--gray);padding:1rem;font-size:0.85rem">Belum ada pertanyaan sama sekali. Buat pertanyaan baru di atas!</div>';
+  }
 }
 
 // Helper: Escape HTML untuk mencegah XSS

@@ -316,7 +316,7 @@
 
 {{-- Modal: Kelola Pertanyaan (Tahap 3) --}}
 <div class="modal-overlay" id="modal-manage-questions">
-  <div class="modal-box" style="max-width:600px; max-height:90vh; overflow-y:auto;">
+  <div class="modal-box" style="max-width:700px; max-height:90vh; overflow-y:auto;">
     <div class="modal-header">
       <div class="modal-title">⚙️ Kelola Pertanyaan Persiapan</div>
       <button class="modal-close" onclick="closeModal('modal-manage-questions')">✕</button>
@@ -332,10 +332,10 @@
         <div style="margin-bottom:0.75rem">
           <label>Role</label>
           <select id="tahap3PrepQuestionRole" style="width:100%;padding:10px;border:2px solid var(--green);border-radius:8px;font-size:0.9rem">
-            <option value="all">Semua Role</option>
-            <option value="peneliti">Peneliti</option>
-            <option value="aktivis">Aktivis</option>
-            <option value="pedagang">Pedagang</option>
+            <option value="all">🌐 Semua Role</option>
+            <option value="peneliti">🔬 Peneliti</option>
+            <option value="aktivis">🌿 Aktivis</option>
+            <option value="pedagang">🛒 Pedagang</option>
           </select>
         </div>
         <div style="display:flex;gap:0.5rem">
@@ -344,13 +344,53 @@
         </div>
       </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
         <h4 style="margin:0">📋 Daftar Pertanyaan</h4>
         <button class="btn-sm" style="background:#6c757d;color:white" onclick="reloadAdminPrepQuestions()">🔄 Refresh</button>
       </div>
-      <div id="adminPrepQuestionsList" style="display:flex;flex-direction:column;gap:10px">
-        <div style="text-align:center;color:var(--gray);padding:1rem">Memuat...</div>
+
+      {{-- Section: Semua Role --}}
+      <div style="margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:2px solid #8b5cf6">
+          <span style="font-size:1.2rem">🌐</span>
+          <span style="font-weight:800;font-size:1rem;color:#8b5cf6">Semua Role</span>
+          <span id="count-all" style="background:#8b5cf620;color:#8b5cf6;font-size:0.75rem;font-weight:700;padding:2px 10px;border-radius:99px;margin-left:auto">0</span>
+        </div>
+        <div id="prep-list-all" class="prep-role-section"></div>
       </div>
+
+      {{-- Section: Peneliti --}}
+      <div style="margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:2px solid #3b82f6">
+          <span style="font-size:1.2rem">🔬</span>
+          <span style="font-weight:800;font-size:1rem;color:#3b82f6">Peneliti</span>
+          <span id="count-peneliti" style="background:#3b82f620;color:#3b82f6;font-size:0.75rem;font-weight:700;padding:2px 10px;border-radius:99px;margin-left:auto">0</span>
+        </div>
+        <div id="prep-list-peneliti" class="prep-role-section"></div>
+      </div>
+
+      {{-- Section: Aktivis --}}
+      <div style="margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:2px solid #22c55e">
+          <span style="font-size:1.2rem">🌿</span>
+          <span style="font-weight:800;font-size:1rem;color:#22c55e">Aktivis</span>
+          <span id="count-aktivis" style="background:#22c55e20;color:#22c55e;font-size:0.75rem;font-weight:700;padding:2px 10px;border-radius:99px;margin-left:auto">0</span>
+        </div>
+        <div id="prep-list-aktivis" class="prep-role-section"></div>
+      </div>
+
+      {{-- Section: Pedagang --}}
+      <div style="margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:2px solid #f59e0b">
+          <span style="font-size:1.2rem">🛒</span>
+          <span style="font-weight:800;font-size:1rem;color:#f59e0b">Pedagang</span>
+          <span id="count-pedagang" style="background:#f59e0b20;color:#f59e0b;font-size:0.75rem;font-weight:700;padding:2px 10px;border-radius:99px;margin-left:auto">0</span>
+        </div>
+        <div id="prep-list-pedagang" class="prep-role-section"></div>
+      </div>
+
+      {{-- Hidden wrapper for error handling (backward compat) --}}
+      <div id="adminPrepQuestionsList" style="display:none"></div>
     </div>
   </div>
 </div>

@@ -35,11 +35,16 @@ class PrepController extends Controller
             }
         }
 
-        // Get questions: either specific role OR 'all' (universal questions)
-        $questions = DB::table('preparation_questions')
-            ->where('role', $role)
-            ->orWhere('role', 'all')
-            ->orderBy('role') // 'all' first, then role-specific
+        // Get ALL questions (universal + role-specific) when role=all
+        // Only filter by specific role if it's not 'all'
+        $query = DB::table('preparation_questions');
+        if ($role && $role !== 'all') {
+            $query->where(function($q) use ($role) {
+                $q->where('role', $role)
+                  ->orWhere('role', 'all');
+            });
+        }
+        $questions = $query->orderBy('role')
             ->orderBy('order')
             ->get();
 
