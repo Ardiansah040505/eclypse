@@ -9,6 +9,7 @@ const state = {
   selectedNewsIndex: null,
   answers: {},
   news: [],
+  videos: [], // Array of video objects for multiple videos
   videoUrl: '',
   videoTitle: 'Video Pembelajaran',
   videoDesc: '🌿 <strong>Judul video:</strong> Krisis Iklim — Mengapa Kita Harus Peduli?',

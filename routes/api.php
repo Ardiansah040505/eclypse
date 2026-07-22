@@ -43,6 +43,8 @@ Route::delete('admin/question/{id}', [NewsQuestionController::class, 'destroy'])
 // Routes Video
 Route::get('video', [VideoController::class, 'show']);
 Route::post('admin/video', [VideoController::class, 'save']);
+Route::delete('admin/video/{id}', [VideoController::class, 'delete']);
+Route::post('admin/video/{id}/toggle', [VideoController::class, 'toggle']);
 
 // Routes Tahap 3 - Prep Questions (Student)
 Route::get('preparation/questions', [PrepController::class, 'questions']);

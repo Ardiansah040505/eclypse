@@ -10,10 +10,13 @@ class LearningVideo extends Model
         'title',
         'youtube_url',
         'description',
-        'is_active'
+        'is_active',
+        'stage',
+        'order'
     ];
 
     protected $casts = [
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        'order' => 'integer'
     ];
 }

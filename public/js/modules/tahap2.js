@@ -30,22 +30,24 @@ const ecoPacks = [
   }
 ];
 
-// ══════════════════ LOAD VIDEO FROM DATABASE ══════════════════
-let _videoLoaded = false;
+// ══════════════════ LOAD VIDEOS FROM DATABASE ══════════════════
+let _videosLoaded = false;
+let _currentPlayingVideoId = null;
+
 async function loadVideoData() {
     // Prevent multiple calls
-    if (_videoLoaded) return;
-    _videoLoaded = true;
+    if (_videosLoaded) return;
+    _videosLoaded = true;
 
     try {
-        const response = await fetch('/api/video');
+        const response = await fetch('/api/video?stage=tahap2');
         const data = await response.json();
         if (data.success && data.data) {
-            state.videoUrl = data.data.youtube_url || '';
-            state.videoTitle = data.data.title || 'Video Pembelajaran';
-            state.videoDesc = data.data.description
-                ? '🌿 <strong>' + data.data.title + ':</strong> ' + data.data.description
-                : '🌿 <strong>Judul video:</strong> ' + (data.data.title || 'Video Pembelajaran');
+            state.videos = data.data; // Array of videos
+            state.videoTitle = data.data.length > 0 ? data.data[0].title || 'Video Pembelajaran' : 'Video Pembelajaran';
+            state.videoDesc = data.data.length > 0
+                ? '🌿 <strong>' + data.data[0].title + ':</strong> ' + (data.data[0].description || '')
+                : '🌿 <strong>Video Pembelajaran:</strong> Belum ada video ditambahkan.';
         }
     } catch(e) {
         console.log('Video belum ada, gunakan default');
@@ -62,14 +64,11 @@ function renderTahap2() {
   if (packsView) packsView.style.display = 'block';
   if (cardsView) cardsView.style.display = 'none';
 
-  // Reset video player saat render ulang
-  resetVideoPlayer();
+  // Reset all video players when re-render
+  resetAllVideoPlayers();
 
-  // Render video description
-  const videoDescEl = document.getElementById('videoDesc');
-  if (videoDescEl) {
-    videoDescEl.innerHTML = state.videoDesc || '⚠️ Admin belum menambahkan video.';
-  }
+  // Render videos
+  renderVideos();
 
   // Render pack grid - TAMPILKAN SEMUA PAKET UNTUK SEMUA SISWA
   const grid = document.getElementById('ecoPacksGrid');
@@ -97,6 +96,51 @@ function renderTahap2() {
       <div class="pack-open">${isOpened ? '✅ Sudah dibuka — lihat lagi →' : '🎴 Sobek & Buka Paket →'}</div>
     </button>`;
   }).join('');
+}
+
+// ══════════════════ RENDER MULTIPLE VIDEOS ══════════════════
+function renderVideos() {
+  const container = document.getElementById('videosContainer');
+  if (!container) return;
+
+  const videos = state.videos || [];
+
+  if (videos.length === 0) {
+    container.innerHTML = `
+      <div class="video-empty-message">
+        <p>⚠️ Belum ada video ditambahkan oleh admin.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = videos.map((video, index) => `
+    <div class="video-item" id="video-item-${video.id || index}">
+      <div class="video-item-header">
+        <span class="video-item-title">${video.title || 'Video ' + (index + 1)}</span>
+        <span class="video-item-number">Video ${index + 1}</span>
+      </div>
+      <div class="video-embed-wrap" id="videoWrap-${video.id || index}">
+        <button class="video-placeholder-btn" onclick="loadVideo('${video.id || index}', '${video.youtube_url}')">
+          <div class="play-circle">▶</div>
+          <span>Klik untuk memutar video</span>
+        </button>
+      </div>
+      ${video.description ? `
+        <div class="video-item-desc">${video.description}</div>
+      ` : ''}
+    </div>
+  `).join('');
+
+  // Render add video button for admin
+  if (state.isAdmin) {
+    const addBtnContainer = document.getElementById('addVideoBtnContainer');
+    if (addBtnContainer) {
+      addBtnContainer.innerHTML = `
+        <button class="btn-sm green" onclick="openModal('modal-addvideo')">+ Tambah Video</button>
+      `;
+    }
+  }
 }
 
 // ══════════════════ OPEN ECO PACK ══════════════════
@@ -315,50 +359,69 @@ function closePackView() {
   renderTahap2();
 }
 
-// ══════════════════ VIDEO FUNCTIONS ══════════════════
-function stopVideo() {
-  const wrap = document.getElementById('videoWrap');
-  if (wrap) {
-    wrap.innerHTML = `
-      <button class="video-placeholder-btn" onclick="loadVideo()">
-        <div class="play-circle">▶</div>
-        <span>Klik untuk memutar video</span>
-      </button>`;
-  }
-}
+// ══════════════════ VIDEO FUNCTIONS (Multiple Videos) ══════════════════
 
-function loadVideo() {
-  const wrap = document.getElementById('videoWrap');
-  const videoDescEl = document.getElementById('videoDesc');
+function loadVideo(videoId, youtubeUrl) {
+  const wrap = document.getElementById(`videoWrap-${videoId}`);
 
-  if (!state.videoUrl) {
-    stopVideo();
-    if (videoDescEl) videoDescEl.innerHTML = '⚠️ Admin belum menambahkan video.';
+  if (!youtubeUrl) {
+    stopVideo(videoId);
+    showToast('⚠️ Link video tidak valid');
     return;
   }
 
-  const videoId = extractYoutubeId(state.videoUrl);
-  if (!videoId) {
-    stopVideo();
+  const videoIdExtracted = extractYoutubeId(youtubeUrl);
+  if (!videoIdExtracted) {
+    stopVideo(videoId);
     showToast('⚠️ Link video tidak valid');
     return;
   }
 
   if (wrap) {
-    wrap.innerHTML = `<iframe id="videoFrame" src="https://www.youtube.com/embed/${videoId}?autoplay=1" allow="autoplay; encrypted-media; fullscreen"></iframe>`;
+    wrap.innerHTML = `
+      <div class="video-iframe-container">
+        <iframe id="videoFrame-${videoId}" src="https://www.youtube.com/embed/${videoIdExtracted}?autoplay=1" allow="autoplay; encrypted-media; fullscreen"></iframe>
+        <button class="video-close-btn" onclick="stopVideo('${videoId}')">✕ Tutup Video</button>
+      </div>
+    `;
+    _currentPlayingVideoId = videoId;
   }
 }
 
-function resetVideoPlayer() {
-  // Reset video ke placeholder saat page dimuat ulang
-  const wrap = document.getElementById('videoWrap');
+function stopVideo(videoId) {
+  const wrap = document.getElementById(`videoWrap-${videoId}`);
   if (wrap) {
     wrap.innerHTML = `
-      <button class="video-placeholder-btn" onclick="loadVideo()">
+      <button class="video-placeholder-btn" onclick="loadVideo('${videoId}', '${getVideoUrlById(videoId)}')">
         <div class="play-circle">▶</div>
         <span>Klik untuk memutar video</span>
       </button>`;
   }
+  if (_currentPlayingVideoId === videoId) {
+    _currentPlayingVideoId = null;
+  }
+}
+
+function resetAllVideoPlayers() {
+  const videos = state.videos || [];
+  videos.forEach((video, index) => {
+    const videoId = video.id || index;
+    const wrap = document.getElementById(`videoWrap-${videoId}`);
+    if (wrap) {
+      wrap.innerHTML = `
+        <button class="video-placeholder-btn" onclick="loadVideo('${videoId}', '${video.youtube_url}')">
+          <div class="play-circle">▶</div>
+          <span>Klik untuk memutar video</span>
+        </button>`;
+    }
+  });
+  _currentPlayingVideoId = null;
+}
+
+function getVideoUrlById(videoId) {
+  const videos = state.videos || [];
+  const video = videos.find((v, idx) => (v.id || idx) == videoId);
+  return video ? video.youtube_url : '';
 }
 
 function extractYoutubeId(url) {
@@ -366,12 +429,54 @@ function extractYoutubeId(url) {
   return match ? match[1] : null;
 }
 
-async function updateVideo() {
-  const url = document.getElementById('videoUrl').value.trim();
+// ══════════════════ ADMIN VIDEO MANAGEMENT ══════════════════
+
+// Load videos for admin modal
+async function loadVideosForAdmin() {
+  try {
+    const response = await fetch('/api/video?stage=tahap2');
+    const data = await response.json();
+    if (data.success) {
+      renderAdminVideoList(data.data);
+    }
+  } catch(e) {
+    console.error('Error loading videos:', e);
+  }
+}
+
+function renderAdminVideoList(videos) {
+  const listContainer = document.getElementById('adminVideoList');
+  if (!listContainer) return;
+
+  if (!videos || videos.length === 0) {
+    listContainer.innerHTML = '<p class="text-gray-500 text-sm">Belum ada video. Tambahkan video baru di bawah.</p>';
+    return;
+  }
+
+  listContainer.innerHTML = videos.map((video, index) => `
+    <div class="admin-video-item">
+      <div class="admin-video-info">
+        <strong>${index + 1}. ${video.title || 'Video ' + (index + 1)}</strong>
+        <small class="text-gray-500">${video.youtube_url}</small>
+        ${video.description ? `<p class="text-sm mt-1">${video.description}</p>` : ''}
+      </div>
+      <div class="admin-video-actions">
+        <button class="btn-xs" onclick="editVideo(${video.id})">✏️ Edit</button>
+        <button class="btn-xs danger" onclick="deleteVideo(${video.id})">🗑️ Hapus</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function saveVideo() {
+  const url = document.getElementById('videoUrlInput').value.trim();
   const title = document.getElementById('videoTitleInput').value.trim();
   const desc = document.getElementById('videoDescInput').value.trim();
+  const order = parseInt(document.getElementById('videoOrderInput').value) || 0;
 
-  if (!url) { showToast('⚠️ Masukkan link YouTube!'); return; }
+  if (!url) {
+    showToast('⚠️ Masukkan link YouTube!'); return;
+  }
 
   try {
     const token = document.querySelector('meta[name="csrf-token"]').content;
@@ -380,41 +485,205 @@ async function updateVideo() {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        
+        'X-CSRF-TOKEN': token
       },
       body: JSON.stringify({
         youtube_url: url,
         title: title || 'Video Pembelajaran',
-        description: desc || ''
+        description: desc,
+        stage: 'tahap2',
+        order: order
       })
     });
 
     const data = await response.json();
     if (data.success) {
-      state.videoUrl = url;
-      state.videoTitle = title || 'Video Pembelajaran';
-      state.videoDesc = desc
-        ? '🌿 <strong>' + title + ':</strong> ' + desc
-        : '🌿 <strong>Judul video:</strong> ' + (title || 'Video Pembelajaran');
-
-      // Reset video wrap
-      const videoWrap = document.getElementById('videoWrap');
-      const videoDescEl = document.getElementById('videoDesc');
-      if (videoWrap) {
-        videoWrap.innerHTML = `
-          <button class="video-placeholder-btn" onclick="loadVideo()">
-            <div class="play-circle">▶</div>
-            <span>Klik untuk memutar video</span>
-          </button>`;
-      }
-      if (videoDescEl) videoDescEl.innerHTML = state.videoDesc;
-
+      // Refresh videos list
+      await refreshVideos();
       closeModal('modal-addvideo');
       showToast('✅ Video berhasil disimpan!');
+    } else {
+      showToast('❌ Gagal menyimpan video');
     }
   } catch(e) {
     console.error(e);
     showToast('❌ Gagal menyimpan video');
+  }
+}
+
+async function saveMultipleVideos() {
+  const urls = document.querySelectorAll('.video-url-input');
+  const titles = document.querySelectorAll('.video-title-input');
+  const descs = document.querySelectorAll('.video-desc-input');
+  const orders = document.querySelectorAll('.video-order-input');
+
+  const videos = [];
+  urls.forEach((input, index) => {
+    const url = input.value.trim();
+    if (url) {
+      videos.push({
+        youtube_url: url,
+        title: titles[index]?.value.trim() || ('Video ' + (index + 1)),
+        description: descs[index]?.value.trim() || '',
+        order: parseInt(orders[index]?.value) || index
+      });
+    }
+  });
+
+  if (videos.length === 0) {
+    showToast('⚠️ Tambahkan minimal 1 video!'); return;
+  }
+
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]').content;
+    const response = await fetch('/api/admin/video', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': token
+      },
+      body: JSON.stringify({
+        videos: videos,
+        stage: 'tahap2'
+      })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      await refreshVideos();
+      closeModal('modal-addvideo');
+      showToast('✅ ' + videos.length + ' video berhasil disimpan!');
+    } else {
+      showToast('❌ Gagal menyimpan video');
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('❌ Gagal menyimpan video');
+  }
+}
+
+async function deleteVideo(videoId) {
+  if (!confirm('Yakin ingin hapus video ini?')) return;
+
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]').content;
+    const response = await fetch('/api/admin/video/' + videoId, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': token
+      }
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      await refreshVideos();
+      showToast('🗑️ Video berhasil dihapus!');
+    } else {
+      showToast('❌ Gagal menghapus video');
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('❌ Gagal menghapus video');
+  }
+}
+
+function editVideo(videoId) {
+  const videos = state.videos || [];
+  const video = videos.find(v => v.id === videoId);
+  if (!video) return;
+
+  document.getElementById('videoTitleInput').value = video.title || '';
+  document.getElementById('videoUrlInput').value = video.youtube_url || '';
+  document.getElementById('videoDescInput').value = video.description || '';
+  document.getElementById('videoOrderInput').value = video.order || 0;
+  document.getElementById('editingVideoId').value = videoId;
+
+  // Show single edit form
+  showSingleVideoForm();
+}
+
+async function refreshVideos() {
+  _videosLoaded = false;
+  await loadVideoData();
+  renderVideos();
+  if (state.isAdmin) {
+    await loadVideosForAdmin();
+  }
+}
+
+function showSingleVideoForm() {
+  document.getElementById('singleVideoForm').style.display = 'block';
+  document.getElementById('multipleVideoForm').style.display = 'none';
+}
+
+function showMultipleVideoForm() {
+  document.getElementById('singleVideoForm').style.display = 'none';
+  document.getElementById('multipleVideoForm').style.display = 'block';
+  renderVideoInputs();
+}
+
+function renderVideoInputs(count = 3) {
+  const container = document.getElementById('multipleVideoInputs');
+  if (!container) return;
+
+  const currentUrls = Array.from(document.querySelectorAll('.video-url-input')).map(i => i.value);
+
+  container.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    container.innerHTML += `
+      <div class="video-input-group">
+        <label>Video ${i + 1}</label>
+        <input type="text" class="video-title-input" placeholder="Judul video ${i + 1}" value="">
+        <input type="text" class="video-url-input" placeholder="Link YouTube video ${i + 1}" value="${currentUrls[i] || ''}">
+        <textarea class="video-desc-input" placeholder="Deskripsi video ${i + 1}" rows="2"></textarea>
+        <input type="number" class="video-order-input" placeholder="Urutan" value="${i}" min="0">
+      </div>
+    `;
+  }
+
+  container.innerHTML += `
+    <button type="button" class="btn-sm mt-2" onclick="addVideoInput()">+ Tambah Video</button>
+  `;
+}
+
+function addVideoInput() {
+  const container = document.getElementById('multipleVideoInputs');
+  const inputs = container.querySelectorAll('.video-input-group');
+  const nextIndex = inputs.length + 1;
+
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = `
+    <div class="video-input-group">
+      <label>Video ${nextIndex}</label>
+      <input type="text" class="video-title-input" placeholder="Judul video ${nextIndex}" value="">
+      <input type="text" class="video-url-input" placeholder="Link YouTube video ${nextIndex}" value="">
+      <textarea class="video-desc-input" placeholder="Deskripsi video ${nextIndex}" rows="2"></textarea>
+      <input type="number" class="video-order-input" placeholder="Urutan" value="${nextIndex - 1}" min="0">
+    </div>
+  `;
+
+  const addBtn = container.querySelector('button');
+  container.insertBefore(tempDiv.firstElementChild, addBtn);
+}
+
+// Legacy functions for backward compatibility
+function updateVideo() { saveVideo(); }
+
+function clearAllVideos() {
+  if (!confirm('Yakin ingin hapus semua video?')) return;
+  try {
+    fetch('/api/admin/video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ stage: 'tahap2', videos: [] })
+    }).then(() => {
+      refreshVideos();
+      showToast('🗑️ Semua video berhasil dihapus!');
+    });
+  } catch(e) {
+    showToast('❌ Gagal menghapus video');
   }
 }
 
@@ -464,39 +733,24 @@ window.closePackView = closePackView;
 window.finishPackAndGoNext = finishPackAndGoNext;
 window.loadVideo = loadVideo;
 window.stopVideo = stopVideo;
-window.resetVideoPlayer = resetVideoPlayer;
-window.clearVideo = clearVideo;
+window.resetAllVideoPlayers = resetAllVideoPlayers;
+window.getVideoUrlById = getVideoUrlById;
 window.extractYoutubeId = extractYoutubeId;
-window.updateVideo = updateVideo;
+window.saveVideo = saveVideo;
+window.saveMultipleVideos = saveMultipleVideos;
+window.deleteVideo = deleteVideo;
+window.editVideo = editVideo;
+window.refreshVideos = refreshVideos;
+window.showSingleVideoForm = showSingleVideoForm;
+window.showMultipleVideoForm = showMultipleVideoForm;
+window.addVideoInput = addVideoInput;
+window.loadVideosForAdmin = loadVideosForAdmin;
+window.clearAllVideos = clearAllVideos;
 window.savePemantikAnswer = savePemantikAnswer;
 window.PEMANTIK_QUESTIONS = PEMANTIK_QUESTIONS;
 window.submitPemantikAnswers = submitPemantikAnswers;
 
-
-// CLEAR VIDEO
-async function clearVideo() {
-  if (!confirm('Yakin ingin hapus video?')) return;
-  try {
-    const token = document.querySelector('meta[name="csrf-token"]').content;
-    await fetch('/api/admin/video', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ youtube_url: '', title: '', description: '' })
-    });
-    state.videoUrl = '';
-    state.videoTitle = '';
-    state.videoDesc = '';
-    resetVideoPlayer();
-    const vd = document.getElementById('videoDesc');
-    if (vd) vd.innerHTML = '⚠️ Video dihapus.';
-    document.getElementById('videoTitleInput').value = '';
-    document.getElementById('videoUrl').value = '';
-    document.getElementById('videoDescInput').value = '';
-    closeModal('modal-addvideo');
-    showToast('🗑 Video berhasil dihapus!');
-  } catch(e) {
-    showToast('❌ Gagal menghapus video');
-  }
-}
-
-window.clearVideo = clearVideo;
+// Legacy exports
+window.updateVideo = saveVideo;
+window.loadVideoData = loadVideoData;
+window.resetVideoPlayer = resetAllVideoPlayers;

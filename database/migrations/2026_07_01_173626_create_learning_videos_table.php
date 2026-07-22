@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('youtube_url')->nullable();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(false);
+            $table->string('stage')->default('tahap2'); // Stage: tahap1, tahap2, tahap3, etc.
+            $table->integer('order')->default(0); // Order within the stage
             $table->timestamps();
         });
     }

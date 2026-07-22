@@ -8,6 +8,21 @@ function openModal(id) {
   if (id === 'modal-kancing') renderTahap4();
   if (id === 'modal-addnews') initQuestionBuilder('questionBuilder');
   if (id === 'modal-addquestion') initQuestionBuilder('newQuestionBuilder');
+  if (id === 'modal-addvideo') {
+    // Load videos for admin
+    if (typeof loadVideosForAdmin === 'function') {
+      loadVideosForAdmin();
+    }
+    // Show form type toggle for admin
+    const formToggle = document.getElementById('formTypeToggle');
+    if (formToggle) {
+      formToggle.style.display = 'flex';
+    }
+    // Initialize with multiple form by default
+    if (typeof showMultipleVideoForm === 'function') {
+      showMultipleVideoForm();
+    }
+  }
 }
 
 function closeModal(id) {
