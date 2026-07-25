@@ -73,7 +73,7 @@
   transform:translateY(-5px);
   box-shadow:0 13px 30px rgba(29,67,50,.2);
 }
-.pack-stack { height:120px; position:relative; margin-bottom:1.25rem; }
+.pack-stack { height:120px; position:relative; margin-bottom:1.25rem; overflow:hidden; }
 .pack-sheet {
   position:absolute;
   width:80px;
@@ -133,13 +133,14 @@
 
 /* ── ECO CARDS GRID ── */
 .eco-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 1.5rem;
   margin-top: 1rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  min-height: 0;
+  flex-shrink: 0;
 }
 .eco-card {
   background: var(--card-bg);
@@ -202,19 +203,25 @@
   cursor: pointer;
   position: relative;
   z-index: 1;
+  flex-shrink: 0;
   /* Prevent any hover-triggered flip */
   transition: none;
 }
 .gacha-flip-scene:hover {
   /* No flip on hover - only on click */
 }
+.gacha-card-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
 .gacha-flip-card {
   width: 100%;
-  min-height: 360px;
+  height: auto;
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  /* Only flip with JS click, not hover */
 }
 .gacha-below {
   display: flex;
@@ -231,10 +238,11 @@
   position: absolute;
   top: 0; left: 0;
   width: 100%;
-  min-height: 500px;
+  min-height: 400px;
+  height: auto;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  overflow-y: auto;
+  overflow-y: visible;
   pointer-events: none;
   padding: 2rem;
   box-sizing: border-box;
@@ -267,8 +275,9 @@
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 1rem;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 .gacha-flip-status {
   font-size: 0.9rem;
@@ -296,24 +305,20 @@
   color: var(--gray);
   letter-spacing: 0.08em;
 }
-.gacha-card-wrap {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
 .eco-card.gacha-card-full {
   width: 100%;
   max-width: 520px;
-  min-height: 500px;
+  min-height: 400px;
+  height: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 2.5rem 2rem 2rem;
+  padding: 2rem;
   text-align: center;
   cursor: pointer;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow-y: visible;
 }
 .gacha-icon { font-size: 4.5rem !important; margin-bottom: 16px; }
 .gacha-title { font-size: 1.4rem !important; margin-bottom: 12px; }

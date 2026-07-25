@@ -241,6 +241,9 @@ function renderGachaCard() {
       </div>
     </div>
   `;
+  // Scroll ke atas saat membuka kartu baru
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
   // Set height eksplisit pada gacha-flip-scene setelah render
   requestAnimationFrame(() => {
     const scene = document.querySelector('.gacha-flip-scene');
@@ -754,3 +757,10 @@ window.submitPemantikAnswers = submitPemantikAnswers;
 window.updateVideo = saveVideo;
 window.loadVideoData = loadVideoData;
 window.resetVideoPlayer = resetAllVideoPlayers;
+window.openMateriModal = openMateriModal;
+
+// ══════════════════ MODAL MATERI LITERASI ══════════════════
+function openMateriModal() {
+  openModal('modal-materi');
+}
+window.openMateriModal = openMateriModal;
