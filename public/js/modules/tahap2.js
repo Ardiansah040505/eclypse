@@ -132,14 +132,10 @@ function renderVideos() {
     </div>
   `).join('');
 
-  // Render add video button for admin
-  if (state.isAdmin) {
-    const addBtnContainer = document.getElementById('addVideoBtnContainer');
-    if (addBtnContainer) {
-      addBtnContainer.innerHTML = `
-        <button class="btn-sm green" onclick="openModal('modal-addvideo')">+ Tambah Video</button>
-      `;
-    }
+  // Show/hide materi admin button
+  const kelolaBtn = document.getElementById('btn-kelola-materi');
+  if (kelolaBtn) {
+    kelolaBtn.style.display = state.isAdmin ? 'inline-flex' : 'none';
   }
 }
 
@@ -764,3 +760,677 @@ function openMateriModal() {
   openModal('modal-materi');
 }
 window.openMateriModal = openMateriModal;
+
+// ══════════════════ MATERI LITERASI - TAB SWITCHING ══════════════════
+let currentMateriTab = 'materi';
+let materiCache = [];
+let questionsCache = [];
+let studentAnswers = {};
+
+function showMateriTab(tab) {
+  currentMateriTab = tab;
+  
+  const tabMateri = document.getElementById('tab-materi');
+  const tabQuestions = document.getElementById('tab-questions');
+  const tabMateriBtn = document.getElementById('tab-materi-btn');
+  const tabQuestionsBtn = document.getElementById('tab-questions-btn');
+  
+  if (tab === 'materi') {
+    tabMateri.style.display = 'block';
+    tabQuestions.style.display = 'none';
+    tabMateriBtn.className = 'btn-sm green';
+    tabMateriBtn.style.flex = '1';
+    tabQuestionsBtn.className = 'btn-sm';
+    tabQuestionsBtn.style.background = 'var(--gray-200)';
+    tabQuestionsBtn.style.color = 'var(--dark)';
+    tabQuestionsBtn.style.flex = '1';
+    
+    // Load materials if not cached
+    if (materiCache.length === 0) {
+      loadMateriMaterials();
+    }
+  } else {
+    tabMateri.style.display = 'none';
+    tabQuestions.style.display = 'block';
+    tabQuestionsBtn.className = 'btn-sm green';
+    tabQuestionsBtn.style.flex = '1';
+    tabMateriBtn.className = 'btn-sm';
+    tabMateriBtn.style.background = 'var(--gray-200)';
+    tabMateriBtn.style.color = 'var(--dark)';
+    tabMateriBtn.style.flex = '1';
+    
+    // Load questions if not cached
+    if (questionsCache.length === 0) {
+      loadMateriQuestions();
+    }
+  }
+}
+window.showMateriTab = showMateriTab;
+
+// ══════════════════ MATERI LITERASI - LOAD & RENDER ══════════════════
+async function loadMateriMaterials() {
+  const loading = document.getElementById('materi-loading');
+  const container = document.getElementById('materi-content');
+  const token = localStorage.getItem('eclypse_token') || window.currentToken;
+  
+  try {
+    const url = token ? '/api/student/materi?token=' + encodeURIComponent(token) : '/api/student/materi';
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!response.ok) throw new Error('Gagal memuat materi');
+    
+    const data = await response.json();
+    materiCache = data.data || data;
+    
+    renderMateriMaterials();
+    
+    loading.style.display = 'none';
+  } catch (error) {
+    loading.innerHTML = '<span style="color:#dc2626">⚠️ Gagal memuat materi. <a href="#" onclick="loadMateriMaterials();return false">Coba lagi</a></span>';
+    console.error('Error loading materials:', error);
+  }
+}
+
+function renderMateriMaterials() {
+  const container = document.getElementById('materi-content');
+  
+  if (!materiCache || materiCache.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:#888;padding:2rem">Belum ada materi tersedia.</p>';
+    return;
+  }
+  
+  let html = '';
+  materiCache.forEach((material, index) => {
+    const borderColor = material.border_color || '#1B4332';
+    const icon = material.icon || '📦';
+    
+    html += `
+      <div style="background:white;border-radius:16px;padding:1.25rem;margin-bottom:1rem;box-shadow:0 2px 12px rgba(29,67,50,0.1);border-left:5px solid ${borderColor}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem">
+          <span style="font-size:1.2rem">${icon}</span>
+          <span style="font-weight:900;font-size:1rem;color:#1B4332">${material.title}</span>
+        </div>
+        <div class="materi-content-body">${material.content || ''}</div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+}
+
+// ══════════════════ MATERI LITERASI - QUESTIONS ══════════════════
+async function loadMateriQuestions() {
+  const loading = document.getElementById('questions-loading');
+  const container = document.getElementById('questions-content');
+  const submitArea = document.getElementById('questions-submit-area');
+  
+  try {
+    // Load questions
+    const token2 = localStorage.getItem('eclypse_token') || window.currentToken;
+    const matUrl = token2 ? '/api/student/materi?token=' + encodeURIComponent(token2) : '/api/student/materi';
+    const questionsResponse = await fetch(matUrl, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!questionsResponse.ok) throw new Error('Gagal memuat pertanyaan');
+    
+    const questionsData = await questionsResponse.json();
+    questionsCache = questionsData.data || questionsData;
+    
+    // Load existing answers
+    const ansUrl = token2 ? '/api/student/materi/answers?token=' + encodeURIComponent(token2) : '/api/student/materi/answers';
+    const answersResponse = await fetch(ansUrl, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (answersResponse.ok) {
+      const answersData = await answersResponse.json();
+      const answers = answersData.data || answersData;
+      
+      // Build answer map
+      studentAnswers = {};
+      if (Array.isArray(answers)) {
+        answers.forEach(a => {
+          studentAnswers[a.question_id] = a.answer;
+        });
+      }
+    }
+    
+    renderMateriQuestions();
+    
+    loading.style.display = 'none';
+    if (questionsCache.length > 0) {
+      submitArea.style.display = 'block';
+    }
+  } catch (error) {
+    loading.innerHTML = '<span style="color:#dc2626">⚠️ Gagal memuat pertanyaan. <a href="#" onclick="loadMateriQuestions();return false">Coba lagi</a></span>';
+    console.error('Error loading questions:', error);
+  }
+}
+
+function renderMateriQuestions() {
+  const container = document.getElementById('questions-content');
+  
+  if (!questionsCache || questionsCache.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:2rem;background:white;border-radius:12px">
+        <p style="color:#888;margin-bottom:0.75rem">Belum ada pertanyaan dari guru.</p>
+        <p style="font-size:0.8rem;color:#aaa">Silakan baca materi terlebih dahulu, kemudian periksa kembali nanti.</p>
+      </div>
+    `;
+    document.getElementById('questions-submit-area').style.display = 'none';
+    return;
+  }
+  
+  let html = '';
+  let questionIndex = 0;
+  
+  questionsCache.forEach((material, mIndex) => {
+    const questions = material.questions || [];
+    if (questions.length === 0) return;
+    
+    const borderColor = material.border_color || '#1B4332';
+    const icon = material.icon || '📦';
+    
+    html += `
+      <div style="background:white;border-radius:12px;padding:1rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(29,67,50,0.08);border-left:4px solid ${borderColor}">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:0.75rem">
+          <span style="font-size:1rem">${icon}</span>
+          <span style="font-weight:700;color:#1B4332;font-size:0.9rem">${material.title}</span>
+        </div>
+    `;
+    
+    questions.forEach((q, qIndex) => {
+      questionIndex++;
+      const qId = q.id;
+      const savedAnswer = studentAnswers[qId] || '';
+      
+      html += `
+        <div style="margin-bottom:1rem">
+          <label style="display:block;font-size:0.85rem;font-weight:600;color:#333;margin-bottom:6px">
+            ${questionIndex}. ${q.question_text}
+          </label>
+          <textarea 
+            id="materi-answer-${qId}"
+            placeholder="Tulis jawaban kamu di sini..."
+            style="width:100%;min-height:80px;padding:0.65rem;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;resize:vertical;box-sizing:border-box;font-family:inherit"
+          >${savedAnswer}</textarea>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+  });
+  
+  if (questionIndex === 0) {
+    html = `
+      <div style="text-align:center;padding:2rem;background:white;border-radius:12px">
+        <p style="color:#888">Belum ada pertanyaan dari guru.</p>
+      </div>
+    `;
+    document.getElementById('questions-submit-area').style.display = 'none';
+  }
+  
+  container.innerHTML = html;
+}
+
+// ══════════════════ MATERI LITERASI - SUBMIT ANSWERS ══════════════════
+async function submitMateriAnswers() {
+  const btn = document.getElementById('btn-submit-materi');
+  const originalText = btn.innerHTML;
+  
+  // Collect all answers
+  const answers = [];
+  questionsCache.forEach(material => {
+    const questions = material.questions || [];
+    questions.forEach(q => {
+      const textarea = document.getElementById(`materi-answer-${q.id}`);
+      if (textarea) {
+        const answer = textarea.value.trim();
+        if (answer) {
+          answers.push({
+            question_id: q.id,
+            answer: answer
+          });
+        }
+      }
+    });
+  });
+  
+  if (answers.length === 0) {
+    showToast('Tidak ada jawaban untuk disimpan', 'warning');
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Menyimpan...';
+  
+  try {
+    const submitToken = localStorage.getItem('eclypse_token') || window.currentToken;
+    const submitUrl = submitToken ? '/api/student/materi/answers?token=' + encodeURIComponent(submitToken) : '/api/student/materi/answers';
+    const response = await fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ answers: answers })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Gagal menyimpan jawaban');
+    }
+    
+    showToast('Jawaban berhasil disimpan! ✓', 'success');
+    
+    // Update cache
+    answers.forEach(a => {
+      studentAnswers[a.question_id] = a.answer;
+    });
+    
+  } catch (error) {
+    showToast('Gagal menyimpan: ' + error.message, 'error');
+    console.error('Error submitting answers:', error);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+window.submitMateriAnswers = submitMateriAnswers;
+
+// ══════════════════ MATERI LITERASI - OPEN MODAL WITH AUTO-LOAD ══════════════════
+function openMateriModal() {
+  openModal('modal-materi');
+  
+  // Reset state
+  materiCache = [];
+  questionsCache = [];
+  studentAnswers = {};
+  currentMateriTab = 'materi';
+  
+  // Reset tabs
+  const tabMateri = document.getElementById('tab-materi');
+  const tabQuestions = document.getElementById('tab-questions');
+  const tabMateriBtn = document.getElementById('tab-materi-btn');
+  const tabQuestionsBtn = document.getElementById('tab-questions-btn');
+  
+  if (tabMateri) {
+    tabMateri.style.display = 'block';
+    tabMateriBtn.className = 'btn-sm green';
+    tabMateriBtn.style.flex = '1';
+  }
+  if (tabQuestions) {
+    tabQuestions.style.display = 'none';
+    tabQuestionsBtn.className = 'btn-sm';
+    tabQuestionsBtn.style.background = 'var(--gray-200)';
+    tabQuestionsBtn.style.color = 'var(--dark)';
+    tabQuestionsBtn.style.flex = '1';
+  }
+  
+  // Load materials immediately
+  loadMateriMaterials();
+}
+window.openMateriModal = openMateriModal;
+
+// ══════════════════ ADMIN MATERI MANAGEMENT ══════════════════
+let adminMateriTab = 'materials';
+let adminMaterials = [];
+let adminQuestions = [];
+let currentEditMateriId = null;
+let currentEditQuestionId = null;
+
+function showAdminMateriTab(tab) {
+  adminMateriTab = tab;
+  
+  const materialsTab = document.getElementById('admin-materials-tab');
+  const questionsTab = document.getElementById('admin-questions-tab');
+  const materialsBtn = document.getElementById('admin-materi-tab-btn');
+  const questionsBtn = document.getElementById('admin-questions-tab-btn');
+  
+  if (tab === 'materials') {
+    materialsTab.style.display = 'block';
+    questionsTab.style.display = 'none';
+    materialsBtn.className = 'btn-sm green';
+    materialsBtn.style.flex = '1';
+    questionsBtn.className = 'btn-sm';
+    questionsBtn.style.background = 'var(--gray-200)';
+    questionsBtn.style.color = 'var(--dark)';
+    questionsBtn.style.flex = '1';
+    
+    if (adminMaterials.length === 0) loadAdminMaterials();
+  } else {
+    materialsTab.style.display = 'none';
+    questionsTab.style.display = 'block';
+    questionsBtn.className = 'btn-sm green';
+    questionsBtn.style.flex = '1';
+    materialsBtn.className = 'btn-sm';
+    materialsBtn.style.background = 'var(--gray-200)';
+    materialsBtn.style.color = 'var(--dark)';
+    materialsBtn.style.flex = '1';
+    
+    if (adminMaterials.length === 0) loadAdminMaterials();
+    populateMateriSelect();
+  }
+}
+window.showAdminMateriTab = showAdminMateriTab;
+
+function getAdminHeaders() {
+  const adminId = localStorage.getItem('admin_id');
+  return {
+    'Content-Type': 'application/json',
+    'X-Admin-Id': adminId || '',
+    'Accept': 'application/json'
+  };
+}
+
+async function loadAdminMaterials() {
+  const container = document.getElementById('adminMaterialsList');
+  container.innerHTML = '<p style="text-align:center;color:#888;padding:1rem">Memuat...</p>';
+  
+  try {
+    const response = await fetch('/api/admin/literasi/materials', {
+      headers: getAdminHeaders()
+    });
+    
+    if (!response.ok) throw new Error('Gagal memuat');
+    
+    const data = await response.json();
+    adminMaterials = data.data || data;
+    
+    renderAdminMaterials();
+  } catch (error) {
+    container.innerHTML = '<p style="text-align:center;color:#dc2626;padding:1rem">Gagal memuat data</p>';
+    console.error('Error:', error);
+  }
+}
+window.loadAdminMaterials = loadAdminMaterials;
+
+function renderAdminMaterials() {
+  const container = document.getElementById('adminMaterialsList');
+  
+  if (!adminMaterials || adminMaterials.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:#888;padding:1rem">Belum ada materi</p>';
+    return;
+  }
+  
+  let html = '<div style="display:flex;flex-direction:column;gap:8px">';
+  
+  adminMaterials.forEach((mat, idx) => {
+    const borderColor = mat.border_color || '#1B4332';
+    html += `
+      <div style="background:white;border-radius:10px;padding:12px;border-left:4px solid ${borderColor};box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:1.1rem">${mat.icon || '📦'}</span>
+          <strong style="font-size:0.9rem;color:#1B4332">${mat.title}</strong>
+        </div>
+        ${mat.subtitle ? `<p style="font-size:0.78rem;color:#666;margin:0 0 6px 0">${mat.subtitle}</p>` : ''}
+        <div style="display:flex;gap:6px">
+          <button class="btn-sm" style="padding:4px 10px;font-size:0.75rem;background:var(--green-pale);color:var(--green-deep)" onclick="editMateri(${mat.id})">✏️ Edit</button>
+          <button class="btn-sm" style="padding:4px 10px;font-size:0.75rem;background:#fee2e2;color:#dc2626" onclick="confirmDeleteMateri(${mat.id}, '${mat.title.replace(/'/g, "\\'")}')">🗑️ Hapus</button>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function editMateri(id) {
+  const mat = adminMaterials.find(m => m.id === id);
+  if (!mat) return;
+  
+  currentEditMateriId = id;
+  document.getElementById('materiId').value = id;
+  document.getElementById('materiTitle').value = mat.title || '';
+  document.getElementById('materiSubtitle').value = mat.subtitle || '';
+  document.getElementById('materiIcon').value = mat.icon || '📦';
+  document.getElementById('materiBorderColor').value = mat.border_color || '#1B4332';
+  document.getElementById('materiContent').value = mat.content || '';
+  
+  showToast('Mode edit aktif', 'info');
+}
+
+function resetMateriForm() {
+  currentEditMateriId = null;
+  document.getElementById('materiId').value = '';
+  document.getElementById('materiTitle').value = '';
+  document.getElementById('materiSubtitle').value = '';
+  document.getElementById('materiIcon').value = '📦';
+  document.getElementById('materiBorderColor').value = '#1B4332';
+  document.getElementById('materiContent').value = '';
+}
+
+async function saveMateri() {
+  const id = document.getElementById('materiId').value;
+  const title = document.getElementById('materiTitle').value.trim();
+  const subtitle = document.getElementById('materiSubtitle').value.trim();
+  const icon = document.getElementById('materiIcon').value.trim();
+  const borderColor = document.getElementById('materiBorderColor').value.trim();
+  const content = document.getElementById('materiContent').value;
+  
+  if (!title) {
+    showToast('Judul harus diisi', 'warning');
+    return;
+  }
+  
+  const payload = { title, subtitle, icon, border_color: borderColor, content };
+  const isEdit = !!id;
+  
+  try {
+    const url = isEdit ? `/api/admin/literasi/materials/${id}` : '/api/admin/literasi/materials';
+    const method = isEdit ? 'PUT' : 'POST';
+    
+    const response = await fetch(url, {
+      method,
+      headers: getAdminHeaders(),
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) throw new Error('Gagal menyimpan');
+    
+    showToast(isEdit ? 'Materi berhasil diupdate!' : 'Materi berhasil ditambahkan!', 'success');
+    
+    resetMateriForm();
+    loadAdminMaterials();
+    
+  } catch (error) {
+    showToast('Gagal menyimpan materi', 'error');
+    console.error('Error:', error);
+  }
+}
+window.saveMateri = saveMateri;
+window.resetMateriForm = resetMateriForm;
+window.editMateri = editMateri;
+
+function confirmDeleteMateri(id, title) {
+  document.getElementById('deleteConfirmId').value = id;
+  document.getElementById('deleteConfirmType').value = 'materi';
+  document.getElementById('deleteConfirmMessage').textContent = `Hapus materi "${title}"? Tindakan ini juga akan menghapus semua pertanyaan terkait.`;
+  openModal('modal-confirm-delete');
+}
+
+function populateMateriSelect() {
+  const select = document.getElementById('questionMaterialSelect');
+  select.innerHTML = '<option value="">-- Pilih Materi --</option>';
+  
+  adminMaterials.forEach(mat => {
+    const opt = document.createElement('option');
+    opt.value = mat.id;
+    opt.textContent = `${mat.icon || '📦'} ${mat.title}`;
+    select.appendChild(opt);
+  });
+}
+
+// Questions
+async function loadAdminQuestions() {
+  const container = document.getElementById('adminQuestionsList');
+  const materialId = document.getElementById('questionMaterialSelect').value;
+  
+  if (!materialId) {
+    container.innerHTML = '<p style="text-align:center;color:#888;padding:1rem">Pilih materi terlebih dahulu...</p>';
+    return;
+  }
+  
+  container.innerHTML = '<p style="text-align:center;color:#888;padding:1rem">Memuat...</p>';
+  
+  try {
+    const response = await fetch(`/api/admin/literasi/questions/${materialId}`, {
+      headers: getAdminHeaders()
+    });
+    
+    if (!response.ok) throw new Error('Gagal memuat');
+    
+    const data = await response.json();
+    adminQuestions = data.data || data;
+    
+    renderAdminQuestions();
+  } catch (error) {
+    container.innerHTML = '<p style="text-align:center;color:#dc2626;padding:1rem">Gagal memuat pertanyaan</p>';
+  }
+}
+window.loadAdminQuestions = loadAdminQuestions;
+
+function renderAdminQuestions() {
+  const container = document.getElementById('adminQuestionsList');
+  
+  if (!adminQuestions || adminQuestions.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:#888;padding:1rem">Belum ada pertanyaan untuk materi ini</p>';
+    return;
+  }
+  
+  let html = '<div style="display:flex;flex-direction:column;gap:8px">';
+  
+  adminQuestions.forEach((q, idx) => {
+    html += `
+      <div style="background:white;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+        <div style="margin-bottom:6px">
+          <span style="background:var(--green-pale);color:var(--green-deep);font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:99px;margin-right:6px">#${idx + 1}</span>
+          <span style="font-size:0.88rem;color:#333">${q.question_text}</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-sm" style="padding:4px 10px;font-size:0.75rem;background:var(--green-pale);color:var(--green-deep)" onclick="editMateriQuestion(${q.id})">✏️ Edit</button>
+          <button class="btn-sm" style="padding:4px 10px;font-size:0.75rem;background:#fee2e2;color:#dc2626" onclick="confirmDeleteQuestion(${q.id})">🗑️ Hapus</button>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function editMateriQuestion(id) {
+  const q = adminQuestions.find(x => x.id === id);
+  if (!q) return;
+  
+  currentEditQuestionId = id;
+  document.getElementById('materiQuestionId').value = id;
+  document.getElementById('materiQuestionText').value = q.question_text || '';
+  
+  showToast('Mode edit aktif', 'info');
+}
+
+function resetMateriQuestionForm() {
+  currentEditQuestionId = null;
+  document.getElementById('materiQuestionId').value = '';
+  document.getElementById('materiQuestionText').value = '';
+}
+
+async function saveMateriQuestion() {
+  const id = document.getElementById('materiQuestionId').value;
+  const materialId = document.getElementById('questionMaterialSelect').value;
+  const questionText = document.getElementById('materiQuestionText').value.trim();
+  
+  if (!materialId) {
+    showToast('Pilih materi terlebih dahulu', 'warning');
+    return;
+  }
+  
+  if (!questionText) {
+    showToast('Pertanyaan harus diisi', 'warning');
+    return;
+  }
+  
+  const isEdit = !!id;
+  const payload = { material_id: materialId, question_text: questionText };
+  
+  try {
+    const url = isEdit ? `/api/admin/literasi/questions/${id}` : '/api/admin/literasi/questions';
+    const method = isEdit ? 'PUT' : 'POST';
+    
+    const response = await fetch(url, {
+      method,
+      headers: getAdminHeaders(),
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) throw new Error('Gagal menyimpan');
+    
+    showToast(isEdit ? 'Pertanyaan berhasil diupdate!' : 'Pertanyaan berhasil ditambahkan!', 'success');
+    
+    resetMateriQuestionForm();
+    loadAdminQuestions();
+    
+  } catch (error) {
+    showToast('Gagal menyimpan pertanyaan', 'error');
+  }
+}
+window.saveMateriQuestion = saveMateriQuestion;
+window.resetMateriQuestionForm = resetMateriQuestionForm;
+window.editMateriQuestion = editMateriQuestion;
+
+function confirmDeleteQuestion(id) {
+  document.getElementById('deleteConfirmId').value = id;
+  document.getElementById('deleteConfirmType').value = 'question';
+  document.getElementById('deleteConfirmMessage').textContent = 'Hapus pertanyaan ini?';
+  openModal('modal-confirm-delete');
+}
+
+async function confirmDelete() {
+  const id = document.getElementById('deleteConfirmId').value;
+  const type = document.getElementById('deleteConfirmType').value;
+  
+  if (!id) return;
+  
+  try {
+    let url;
+    if (type === 'materi') {
+      url = `/api/admin/literasi/materials/${id}`;
+    } else {
+      url = `/api/admin/literasi/questions/${id}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAdminHeaders()
+    });
+    
+    if (!response.ok) throw new Error('Gagal menghapus');
+    
+    showToast('Berhasil dihapus!', 'success');
+    closeModal('modal-confirm-delete');
+    
+    if (type === 'materi') {
+      loadAdminMaterials();
+    } else {
+      loadAdminQuestions();
+    }
+    
+  } catch (error) {
+    showToast('Gagal menghapus', 'error');
+  }
+}
+window.confirmDelete = confirmDelete;
+
+function openManageMateriModal() {
+  openModal('modal-manage-materi');
+  adminMaterials = [];
+  adminQuestions = [];
+  showAdminMateriTab('materials');
+  loadAdminMaterials();
+}
+window.openManageMateriModal = openManageMateriModal;

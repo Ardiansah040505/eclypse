@@ -57,6 +57,22 @@ Route::put('admin/prep-questions/{id}', [\App\Http\Controllers\Admin\PrepQuestio
 Route::delete('admin/prep-questions/{id}', [\App\Http\Controllers\Admin\PrepQuestionController::class, 'destroy']);
 Route::post('admin/prep-questions/bulk', [\App\Http\Controllers\Admin\PrepQuestionController::class, 'bulkStore']);
 
+// Routes Literasi Materi - Admin
+Route::get('admin/literasi/materials', [\App\Http\Controllers\LiterasiController::class, 'materials']);
+Route::post('admin/literasi/materials', [\App\Http\Controllers\LiterasiController::class, 'storeMaterial']);
+Route::put('admin/literasi/materials/{id}', [\App\Http\Controllers\LiterasiController::class, 'updateMaterial']);
+Route::delete('admin/literasi/materials/{id}', [\App\Http\Controllers\LiterasiController::class, 'destroyMaterial']);
+Route::post('admin/literasi/materials/reorder', [\App\Http\Controllers\LiterasiController::class, 'reorderMaterials']);
+Route::get('admin/literasi/questions/{materialId}', [\App\Http\Controllers\LiterasiController::class, 'questions']);
+Route::post('admin/literasi/questions', [\App\Http\Controllers\LiterasiController::class, 'storeQuestion']);
+Route::put('admin/literasi/questions/{id}', [\App\Http\Controllers\LiterasiController::class, 'updateQuestion']);
+Route::delete('admin/literasi/questions/{id}', [\App\Http\Controllers\LiterasiController::class, 'destroyQuestion']);
+
+// Routes Literasi Materi - Student
+Route::get('student/materi', [\App\Http\Controllers\Student\StudentMateriController::class, 'index']);
+Route::post('student/materi/answers', [\App\Http\Controllers\Student\StudentMateriController::class, 'submitAnswers']);
+Route::get('student/materi/answers', [\App\Http\Controllers\Student\StudentMateriController::class, 'getMyAnswers']);
+
 // Routes Tahap 1 - Student News Answers
 Route::get('student/news/{id}/answer', [StudentNewsAnswerController::class, 'show']);
 Route::post('student/news/{id}/answer', [StudentNewsAnswerController::class, 'save']);
@@ -119,4 +135,5 @@ Route::prefix('admin')->group(function () {
 
 // Admin Download
 Route::get('admin/download/prep', [DownloadController::class, 'prepCsv']);
+Route::get('admin/download/materi', [DownloadController::class, 'materiCsv']);
 Route::get('admin/download/all', [DownloadController::class, 'allCsv']);

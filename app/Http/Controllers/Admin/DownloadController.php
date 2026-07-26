@@ -366,4 +366,64 @@ EOT;
 
         return response()->streamDownload(fn() => print($csv), 'Jawaban_Persiapan_' . date('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=utf-8']);
     }
+
+    /**
+     * Download Materi Literasi Answers CSV
+     */
+    public function materiCsv()
+    {
+        // Get all answers with student and question info
+        $rows = DB::table('materi_answers as ma')
+            ->join('users as u', 'ma.student_id', 'u.id')
+            ->join('materi_questions as mq', 'ma.question_id', 'mq.id')
+            ->join('literasi_materials as lm', 'mq.material_id', 'lm.id')
+            ->orderBy('lm.order')
+            ->orderBy('mq.order')
+            ->orderBy('u.name')
+            ->select(
+                'u.name as nama',
+                'u.nis',
+                'u.school as sekolah',
+                'lm.title as materi',
+                'lm.icon as materi_icon',
+                'mq.question_text as pertanyaan',
+                'ma.answer as jawaban',
+                'ma.created_at as waktu'
+            )
+            ->get();
+
+        // Generate CSV
+        $csv = "\xEF\xBB\xBFNo,Nama,NIS,Sekolah,Materi,Icon,No Soal,pertanyaan,Jawaban,Waktu\n";
+
+        $no = 1;
+        $currentStudent = null;
+        $questionCounter = [];
+
+        foreach ($rows as $r) {
+            // Track question number per material per student
+            $key = $r->nama . '_' . $r->materi;
+            if (!isset($questionCounter[$key])) {
+                $questionCounter[$key] = 0;
+            }
+            $questionCounter[$key]++;
+
+            $line = $no++ . ',';
+            $line .= '"' . str_replace('"', '""', $r->nama ?? '') . '",';
+            $line .= '"' . ($r->nis ?? '') . '",';
+            $line .= '"' . str_replace('"', '""', $r->sekolah ?? '') . '",';
+            $line .= '"' . str_replace('"', '""', $r->materi ?? '') . '",';
+            $line .= '"' . ($r->materi_icon ?? '') . '",';
+            $line .= $questionCounter[$key] . ',';
+            $line .= '"' . str_replace('"', '""', $r->pertanyaan ?? '') . '",';
+            $line .= '"' . str_replace('"', '""', $r->jawaban ?? '') . '",';
+            $line .= '"' . ($r->waktu ?? '') . "\"\n";
+            $csv .= $line;
+        }
+
+        return response()->streamDownload(
+            fn() => print($csv),
+            'Jawaban_Materi_' . date('Y-m-d') . '.csv',
+            ['Content-Type' => 'text/csv; charset=utf-8']
+        );
+    }
 }

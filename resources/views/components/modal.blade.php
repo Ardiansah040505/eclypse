@@ -442,3 +442,114 @@
     </div>
   </div>
 </div>
+
+{{-- Modal: Kelola Materi Literasi (Admin) --}}
+<div class="modal-overlay" id="modal-manage-materi">
+  <div class="modal-box" style="max-width:900px; max-height:90vh; overflow-y:auto;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1B4332,#2D6A4F);color:white">
+      <div class="modal-title" style="color:white">📖 Kelola Materi Literasi Iklim</div>
+      <button class="modal-close" style="color:white" onclick="closeModal('modal-manage-materi')">✕</button>
+    </div>
+    <div style="padding:1rem 1.25rem">
+
+      {{-- Tabs --}}
+      <div style="display:flex;gap:6px;margin-bottom:1rem">
+        <button class="btn-sm green" id="admin-materi-tab-btn" onclick="showAdminMateriTab('materials')" style="flex:1">📚 Materi</button>
+        <button class="btn-sm" id="admin-questions-tab-btn" onclick="showAdminMateriTab('questions')" style="flex:1;background:var(--gray-200);color:var(--dark)">✏️ Pertanyaan</button>
+      </div>
+
+      {{-- Materials Tab --}}
+      <div id="admin-materials-tab">
+        <div style="background:var(--green-pale);padding:1rem;border-radius:8px;margin-bottom:1rem">
+          <h4 style="margin-top:0;margin-bottom:0.5rem;color:var(--green-deep)">📝 Edit Materi</h4>
+          <input type="hidden" id="materiId">
+          <div style="margin-bottom:0.5rem">
+            <label style="font-size:0.82rem;font-weight:600">Judul</label>
+            <input type="text" id="materiTitle" placeholder="Judul materi..." style="width:100%;padding:8px;border:2px solid var(--green);border-radius:6px;font-size:0.85rem">
+          </div>
+          <div style="margin-bottom:0.5rem">
+            <label style="font-size:0.82rem;font-weight:600">Subtitle</label>
+            <input type="text" id="materiSubtitle" placeholder="Subtitle..." style="width:100%;padding:8px;border:2px solid var(--green);border-radius:6px;font-size:0.85rem">
+          </div>
+          <div style="margin-bottom:0.5rem">
+            <label style="font-size:0.82rem;font-weight:600">Icon (emoji)</label>
+            <input type="text" id="materiIcon" placeholder="📦" maxlength="10" style="width:80px;padding:8px;border:2px solid var(--green);border-radius:6px;font-size:0.85rem;text-align:center">
+          </div>
+          <div style="margin-bottom:0.5rem">
+            <label style="font-size:0.82rem;font-weight:600">Warna Border (hex)</label>
+            <input type="text" id="materiBorderColor" placeholder="#1B4332" maxlength="10" style="width:120px;padding:8px;border:2px solid var(--green);border-radius:6px;font-size:0.85rem">
+          </div>
+          <div style="margin-bottom:0.5rem">
+            <label style="font-size:0.82rem;font-weight:600">Konten (HTML)</label>
+            <textarea id="materiContent" placeholder="Konten HTML..." style="width:100%;min-height:200px;padding:8px;border:2px solid var(--green);border-radius:6px;font-size:0.8rem;resize:vertical;font-family:monospace"></textarea>
+          </div>
+          <div style="display:flex;gap:0.5rem">
+            <button class="btn-sm green" onclick="saveMateri()">💾 Simpan</button>
+            <button class="btn-sm" style="background:var(--gray-200);color:var(--dark)" onclick="resetMateriForm()">Reset</button>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+          <h4 style="margin:0;font-size:0.95rem">📋 Daftar Materi</h4>
+          <button class="btn-sm" style="background:#6c757d;color:white;padding:6px 12px" onclick="loadAdminMaterials()">🔄 Refresh</button>
+        </div>
+
+        <div id="adminMaterialsList" style="max-height:300px;overflow-y:auto">
+          <p style="color:#888;text-align:center;padding:1rem">Memuat...</p>
+        </div>
+      </div>
+
+      {{-- Questions Tab --}}
+      <div id="admin-questions-tab" style="display:none">
+        <div style="margin-bottom:1rem">
+          <label style="font-size:0.82rem;font-weight:600">Pilih Materi</label>
+          <select id="questionMaterialSelect" onchange="loadAdminQuestions()" style="width:100%;padding:8px;border:2px solid var(--green);border-radius:6px;font-size:0.85rem">
+            <option value="">-- Pilih Materi --</option>
+          </select>
+        </div>
+
+        <div style="background:var(--green-pale);padding:1rem;border-radius:8px;margin-bottom:1rem">
+          <h4 style="margin-top:0;margin-bottom:0.5rem;color:var(--green-deep)">➕ Tambah Pertanyaan</h4>
+          <input type="hidden" id="materiQuestionId">
+          <div style="margin-bottom:0.5rem">
+            <label style="font-size:0.82rem;font-weight:600">Pertanyaan</label>
+            <textarea id="materiQuestionText" placeholder="Tulis pertanyaan untuk siswa..." style="width:100%;min-height:80px;padding:8px;border:2px solid var(--green);border-radius:6px;font-size:0.85rem;resize:vertical;font-family:'Nunito',sans-serif"></textarea>
+          </div>
+          <div style="display:flex;gap:0.5rem">
+            <button class="btn-sm green" onclick="saveMateriQuestion()">💾 Simpan</button>
+            <button class="btn-sm" style="background:var(--gray-200);color:var(--dark)" onclick="resetMateriQuestionForm()">Reset</button>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+          <h4 style="margin:0;font-size:0.95rem">📋 Daftar Pertanyaan</h4>
+          <button class="btn-sm" style="background:#6c757d;color:white;padding:6px 12px" onclick="loadAdminQuestions()">🔄 Refresh</button>
+        </div>
+
+        <div id="adminQuestionsList" style="max-height:300px;overflow-y:auto">
+          <p style="color:#888;text-align:center;padding:1rem">Pilih materi terlebih dahulu...</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{{-- Modal: Konfirmasi Hapus --}}
+<div class="modal-overlay" id="modal-confirm-delete">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-header" style="background:#dc2626;color:white">
+      <div class="modal-title" style="color:white">⚠️ Konfirmasi Hapus</div>
+      <button class="modal-close" style="color:white" onclick="closeModal('modal-confirm-delete')">✕</button>
+    </div>
+    <div class="modal-form">
+      <p style="margin-bottom:1rem" id="deleteConfirmMessage">Apakah kamu yakin ingin menghapus item ini?</p>
+      <input type="hidden" id="deleteConfirmId">
+      <input type="hidden" id="deleteConfirmType">
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn-sm" style="background:#dc2626;color:white" onclick="confirmDelete()">🗑️ Hapus</button>
+        <button class="btn-sm" style="background:var(--gray-200);color:var(--dark)" onclick="closeModal('modal-confirm-delete')">Batal</button>
+      </div>
+    </div>
+  </div>
+</div>

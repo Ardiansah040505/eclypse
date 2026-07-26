@@ -159,6 +159,9 @@ async function submitAdminLogin() {
         state.user    = data.user;
         state.isAdmin = true;
 
+        // Store admin_id for API calls
+        localStorage.setItem('admin_id', data.user.id);
+
         closeModal('modal-admin-login');
         loginSuccess();
 
@@ -338,6 +341,11 @@ async function restoreSession() {
     state.user.nama    = data.user.name;
     state.user.sekolah = data.user.school;
     state.isAdmin      = data.is_admin === true;
+
+    // Restore admin_id for API calls
+    if (state.isAdmin && data.user.id) {
+      localStorage.setItem('admin_id', data.user.id);
+    }
 
     // Jalankan loginSuccess (akan navigasi ke 'home' dulu)
     await loginSuccess();

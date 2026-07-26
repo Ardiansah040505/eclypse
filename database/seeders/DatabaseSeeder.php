@@ -57,5 +57,8 @@ class DatabaseSeeder extends Seeder
         foreach ($objectives as $text) {
             \App\Models\LearningObjective::firstOrCreate(['text' => $text]);
         }
+
+        // Seed Literasi Materials
+        $this->call(LiterasiMaterialSeeder::class);
     }
 }
