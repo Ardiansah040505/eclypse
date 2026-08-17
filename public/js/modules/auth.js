@@ -191,9 +191,10 @@ async function loginSuccess() {
 
     }
 
-    // Load eco_role from user data (saved from spin wheel)
+    // Load eco_role from user data (saved from role selection in Tahap 1)
     if (state.user.eco_role) {
         state.selectedEcoRole = state.user.eco_role;
+        state.studentRole = state.user.eco_role;
         state._studentRole = {
             id: state.user.eco_role,
             name: getRoleName(state.user.eco_role)

@@ -146,6 +146,9 @@ const state = {
   dbAnswers: {},
   newsProgress: {},
   myGroup: null,
+  // Student role (peneliti, aktivis, pedagang) - set after Tahap 1
+  studentRole: null,
+  _studentRole: null,
 };
 
 // ══════════════════ LOAD PERSISTED STATE ══════════════════
@@ -160,6 +163,25 @@ function loadPersistedState() {
       if (data.pemantikAnswers) state.pemantikAnswers = data.pemantikAnswers;
     }
   } catch(e) { console.warn('Failed to load persisted state:', e); }
+
+  // Load student role from localStorage (if user data already available)
+  if (state.user && state.user.id) {
+    loadStudentRole();
+  }
+}
+
+// Separate function to load student role (called after user data is available)
+function loadStudentRole() {
+  try {
+    const roleKey = 'eclypse_role_' + (state.user?.id || 'guest');
+    const savedRole = localStorage.getItem(roleKey);
+    if (savedRole) {
+      const roleData = JSON.parse(savedRole);
+      state.studentRole = roleData.id;
+      state._studentRole = roleData;
+      state.selectedEcoRole = roleData.id;
+    }
+  } catch(e) { console.warn('Failed to load student role:', e); }
 }
 
 function savePersistedState() {
@@ -180,3 +202,4 @@ loadPersistedState();
 // Export state untuk digunakan di modul lain
 window.state = state;
 window.savePersistedState = savePersistedState;
+window.loadStudentRole = loadStudentRole;

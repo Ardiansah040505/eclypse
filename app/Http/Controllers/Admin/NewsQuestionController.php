@@ -9,40 +9,63 @@ use App\Models\NewsOption;
 
 class NewsQuestionController extends Controller
 {
+    /**
+     * Check if request is from authenticated admin
+     */
+    private function isAdminRequest(Request $request): bool
+    {
+        $adminId = $request->header('X-Admin-Id') ?: $request->input('admin_id');
+        return !empty($adminId);
+    }
+
     public function store(Request $request, $newsId)
-{
-    $type = $request->type == 'mc'
-        ? 'multiple_choice'
-        : 'essay';
+    {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
 
-    $question = NewsQuestion::create([
-        'learning_news_id' => $newsId,
-        'question' => $request->question,
-        'type' => $type,
-        'order' => $request->order ?? 1
-    ]);
+        $type = $request->type == 'mc'
+            ? 'multiple_choice'
+            : 'essay';
 
-    if ($type == 'multiple_choice') {
+        $question = NewsQuestion::create([
+            'learning_news_id' => $newsId,
+            'question' => $request->question,
+            'type' => $type,
+            'order' => $request->order ?? 1
+        ]);
 
-        foreach ($request->options as $index => $option) {
+        if ($type == 'multiple_choice') {
 
-            NewsOption::create([
-                'news_question_id' => $question->id,
-                'option_text' => $option,
-                'is_correct' => ($index == $request->answer)
-            ]);
+            foreach ($request->options as $index => $option) {
+
+                NewsOption::create([
+                    'news_question_id' => $question->id,
+                    'option_text' => $option,
+                    'is_correct' => ($index == $request->answer)
+                ]);
+
+            }
 
         }
 
+        return response()->json([
+            'success' => true
+        ]);
     }
-
-    return response()->json([
-        'success' => true
-    ]);
-}
 
     public function update(Request $request, $id)
     {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         $question = NewsQuestion::find($id);
         if (!$question) {
             return response()->json([
@@ -82,8 +105,15 @@ class NewsQuestionController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         NewsQuestion::destroy($id);
 
         return response()->json([

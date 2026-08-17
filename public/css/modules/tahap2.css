@@ -363,3 +363,112 @@
 @media (max-width: 640px) {
   .eco-packs { grid-template-columns:1fr; }
 }
+
+/* ── RICH TEXT EDITOR STYLES ── */
+#materiContentEditor {
+  min-height: 200px;
+  padding: 12px;
+  border: 2px solid var(--green);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  line-height: 1.6;
+  outline: none;
+  overflow-y: auto;
+  font-family: 'Nunito', sans-serif;
+}
+
+#materiContentEditor:focus {
+  border-color: var(--green-deep);
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.1);
+}
+
+/* Placeholder for contenteditable */
+#materiContentEditor:empty:before {
+  content: attr(placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  display: block;
+}
+
+/* Style content inside rich text editor */
+#materiContentEditor b,
+#materiContentEditor strong {
+  font-weight: 700;
+}
+
+#materiContentEditor i,
+#materiContentEditor em {
+  font-style: italic;
+}
+
+#materiContentEditor u {
+  text-decoration: underline;
+}
+
+#materiContentEditor ul,
+#materiContentEditor ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+#materiContentEditor li {
+  margin: 0.25rem 0;
+}
+
+/* Toolbar button styles */
+.btn-toolbar {
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.btn-toolbar:hover {
+  background: var(--green-pale);
+  border-color: var(--green);
+}
+
+.btn-toolbar:active {
+  background: var(--green);
+  color: white;
+}
+
+/* ── MATERI CONTENT BODY (Student View) ── */
+.materi-content-body {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: #374151;
+}
+
+.materi-content-body b,
+.materi-content-body strong {
+  font-weight: 700;
+  color: #1B4332;
+}
+
+.materi-content-body i,
+.materi-content-body em {
+  font-style: italic;
+}
+
+.materi-content-body u {
+  text-decoration: underline;
+}
+
+.materi-content-body p {
+  margin: 0.5rem 0;
+}
+
+.materi-content-body ul,
+.materi-content-body ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.materi-content-body li {
+  margin: 0.25rem 0;
+}

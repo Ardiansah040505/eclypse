@@ -9,6 +9,15 @@ use Illuminate\Support\Facades\DB;
 
 class RefleksiQuestionController extends Controller
 {
+    /**
+     * Check if request is from authenticated admin
+     */
+    private function isAdminRequest(Request $request): bool
+    {
+        $adminId = $request->header('X-Admin-Id') ?: $request->input('admin_id');
+        return !empty($adminId);
+    }
+
     // GET /api/refleksi-questions - List all questions for admin
     public function index(Request $request)
     {
@@ -48,9 +57,16 @@ class RefleksiQuestionController extends Controller
         ]);
     }
 
-    // POST /api/refleksi-questions - Create new question
+    // POST /api/refleksi-questions - Create new question (admin only)
     public function store(Request $request)
     {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         $validated = $request->validate([
             'question_text' => 'required|string|max:2000',
             'role' => 'required|string|in:peneliti,aktivis,pedagang,all',
@@ -70,9 +86,16 @@ class RefleksiQuestionController extends Controller
         ]);
     }
 
-    // PUT /api/refleksi-questions/{id} - Update question
+    // PUT /api/refleksi-questions/{id} - Update question (admin only)
     public function update(Request $request, $id)
     {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         $question = RefleksiQuestion::find($id);
         if (!$question) {
             return response()->json([
@@ -100,9 +123,16 @@ class RefleksiQuestionController extends Controller
         ]);
     }
 
-    // DELETE /api/refleksi-questions/{id} - Delete question
-    public function destroy($id)
+    // DELETE /api/refleksi-questions/{id} - Delete question (admin only)
+    public function destroy(Request $request, $id)
     {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         $question = RefleksiQuestion::find($id);
         if (!$question) {
             return response()->json([

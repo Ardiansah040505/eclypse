@@ -480,8 +480,20 @@
             <input type="text" id="materiBorderColor" placeholder="#1B4332" maxlength="10" style="width:120px;padding:8px;border:2px solid var(--green);border-radius:6px;font-size:0.85rem">
           </div>
           <div style="margin-bottom:0.5rem">
-            <label style="font-size:0.82rem;font-weight:600">Konten (HTML)</label>
-            <textarea id="materiContent" placeholder="Konten HTML..." style="width:100%;min-height:200px;padding:8px;border:2px solid var(--green);border-radius:6px;font-size:0.8rem;resize:vertical;font-family:monospace"></textarea>
+            <label style="font-size:0.82rem;font-weight:600">Konten</label>
+            {{-- Rich Text Editor Toolbar --}}
+            <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap">
+              <button type="button" class="btn-sm" style="padding:4px 10px;font-weight:700;background:white;border:1px solid #ccc" onclick="formatText('bold')" title="Bold (Tebal)"><b>B</b></button>
+              <button type="button" class="btn-sm" style="padding:4px 10px;font-style:italic;background:white;border:1px solid #ccc" onclick="formatText('italic')" title="Italic (Miring)"><i>I</i></button>
+              <button type="button" class="btn-sm" style="padding:4px 10px;text-decoration:underline;background:white;border:1px solid #ccc" onclick="formatText('underline')" title="Underline (Garis Bawah)"><u>U</u></button>
+              <button type="button" class="btn-sm" style="padding:4px 10px;background:white;border:1px solid #ccc" onclick="formatText('insertUnorderedList')" title="Daftar Bullet">• List</button>
+              <button type="button" class="btn-sm" style="padding:4px 10px;background:white;border:1px solid #ccc" onclick="formatText('insertOrderedList')" title="Daftar Angka">1. List</button>
+              <button type="button" class="btn-sm" style="padding:4px 10px;background:white;border:1px solid #ccc" onclick="clearFormat()" title="Hapus Format">🧹 Clear</button>
+            </div>
+            {{-- Rich Text Editor Content Area --}}
+            <div id="materiContentEditor" contenteditable="true" placeholder="Tulis konten materi di sini..." style="width:100%;min-height:200px;padding:12px;border:2px solid var(--green);border-radius:6px;font-size:0.9rem;background:white;line-height:1.6;outline:none;overflow-y:auto;font-family:'Nunito',sans-serif"></div>
+            {{-- Hidden textarea untuk menyimpan HTML --}}
+            <textarea id="materiContent" style="display:none"></textarea>
           </div>
           <div style="display:flex;gap:0.5rem">
             <button class="btn-sm green" onclick="saveMateri()">💾 Simpan</button>

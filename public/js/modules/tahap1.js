@@ -339,17 +339,29 @@ async function saveNewsAnswer() {
 
       updateProgressBar();
 
-      // Show success message and go back to news list
+      // Show success message
       if (data.data.is_completed) {
-        showToast('🎉 Semua soal dijawab! Tahap 1 selesai!', 3000);
+        // Check if all news are completed and role not yet selected
+        const allCompleted = checkAllNewsCompleted();
+        if (allCompleted && !state.studentRole) {
+          // Show role selection modal
+          showToast('🎉 Semua soal dijawab! Pilih peranmu dulu!', 3000);
+          setTimeout(() => {
+            openModal('modal-pilih-role');
+          }, 1500);
+        } else {
+          showToast('🎉 Semua soal dijawab! Tahap 1 selesai!', 3000);
+          setTimeout(() => {
+            goTo('tahap1');
+          }, 1500);
+        }
       } else {
         showToast('✅ Jawaban berhasil disimpan!', 2000);
+        // Auto go back to news list after short delay
+        setTimeout(() => {
+          goTo('tahap1');
+        }, 1500);
       }
-
-      // Auto go back to news list after short delay
-      setTimeout(() => {
-        goTo('tahap1');
-      }, 1500);
     } else {
       showToast('⚠️ ' + (data.message || 'Gagal menyimpan ke server'));
     }
@@ -360,12 +372,108 @@ async function saveNewsAnswer() {
     state._newsRecap[state.selectedNewsIndex] = { judul: news.title, jawaban: answers, questions };
     saveStudentRecap('climateNews', state._newsRecap);
     updateProgressBar();
-    showToast('✅ Jawaban tersimpan (offline)');
-    setTimeout(() => {
-      goTo('tahap1');
-    }, 1500);
+
+    // Check if all news completed
+    const allCompleted = checkAllNewsCompleted();
+    if (allCompleted && !state.studentRole) {
+      showToast('✅ Jawaban tersimpan (offline). Pilih peranmu dulu!', 3000);
+      setTimeout(() => {
+        openModal('modal-pilih-role');
+      }, 2000);
+    } else {
+      showToast('✅ Jawaban tersimpan (offline)');
+      setTimeout(() => {
+        goTo('tahap1');
+      }, 1500);
+    }
   }
 }
+
+// ══════════════════ CHECK ALL NEWS COMPLETED ══════════════════
+function checkAllNewsCompleted() {
+  if (!state.news || state.news.length === 0) return false;
+
+  // Check if all news have been answered (based on newsProgress or dbAnswers)
+  const totalNews = state.news.length;
+  let completedCount = 0;
+
+  for (const n of state.news) {
+    if (state.newsProgress && state.newsProgress[n.id] && state.newsProgress[n.id].is_completed) {
+      completedCount++;
+    } else if (state.dbAnswers && state.dbAnswers[n.id] && state.dbAnswers[n.id].is_completed) {
+      completedCount++;
+    }
+  }
+
+  return completedCount >= totalNews;
+}
+
+// ══════════════════ SELECT ROLE ══════════════════
+async function selectRole(role) {
+  if (!role) return;
+
+  // Add visual feedback
+  const cards = document.querySelectorAll('.role-card');
+  cards.forEach(card => card.style.opacity = '0.5');
+
+  const selectedCard = document.getElementById('role-card-' + role);
+  if (selectedCard) {
+    selectedCard.style.opacity = '1';
+  }
+
+  // Save role to state
+  state.studentRole = role;
+  state._studentRole = {
+    id: role,
+    name: getRoleName(role)
+  };
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('eclypse_role_' + (state.user?.id || 'guest'), JSON.stringify(state._studentRole));
+  } catch(e) {}
+
+  // Also save to server if user is logged in
+  if (state.user && state.user.id) {
+    try {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+      await fetch('/api/student/eco-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': token
+        },
+        body: JSON.stringify({
+          student_id: state.user.id,
+          eco_role: role
+        })
+      });
+    } catch(e) {
+      console.warn('Failed to save role to server:', e);
+    }
+  }
+
+  // Close modal
+  closeModal('modal-pilih-role');
+
+  // Show success
+  const roleNames = {
+    'peneliti': '🔬 Peneliti',
+    'aktivis': '🌿 Aktivis Lingkungan',
+    'pedagang': '🛒 Pedagang'
+  };
+  showToast(`✅ Peran "${roleNames[role]}" berhasil disimpan!`, 3000);
+
+  // Redirect to Tahap 1 list
+  setTimeout(() => {
+    goTo('tahap1');
+  }, 1000);
+}
+
+// Export functions
+window.selectRole = selectRole;
+window.checkAllNewsCompleted = checkAllNewsCompleted;
 
 // ══════════════════ QUESTION EDITOR (FOR ADMIN) ══════════════════
 

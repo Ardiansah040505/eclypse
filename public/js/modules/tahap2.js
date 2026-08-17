@@ -70,18 +70,53 @@ function renderTahap2() {
   // Render videos
   renderVideos();
 
-  // Render pack grid - TAMPILKAN SEMUA PAKET UNTUK SEMUA SISWA
+  // Render pack grid
   const grid = document.getElementById('ecoPacksGrid');
   if (!grid) return;
 
-  // Hide the role assigned message since students don't need role anymore
+  // Check if student has selected a role (students only, not admin)
+  const hasRole = state.studentRole && !state.isAdmin;
+
+  // Role assigned message
   const roleMessage = document.getElementById('roleAssignedMessage');
   if (roleMessage) {
-    roleMessage.style.display = 'none';
+    if (hasRole) {
+      const roleNames = {
+        'peneliti': '🔬 Peneliti',
+        'aktivis': '🌿 Aktivis',
+        'pedagang': '🛒 Pedagang'
+      };
+      roleMessage.innerHTML = `🎭 Peranmu: <strong>${roleNames[state.studentRole] || state.studentRole}</strong> — Kamu hanya bisa mengakses kartu sesuai peranmu.`;
+      roleMessage.style.display = 'block';
+    } else if (!state.isAdmin) {
+      roleMessage.innerHTML = `⚠️ Kamu belum memilih peran. Selesaikan Tahap 1 dulu untuk memilih peranmu.`;
+      roleMessage.style.display = 'block';
+    } else {
+      roleMessage.style.display = 'none';
+    }
   }
 
-  // Tampilkan semua paket eco cards
-  grid.innerHTML = ecoPacks.map(pack => {
+  // Filter packs based on role (admin sees all)
+  let visiblePacks = ecoPacks;
+  if (!state.isAdmin) {
+    if (state.studentRole) {
+      // Show only the pack matching student's role
+      visiblePacks = ecoPacks.filter(pack => pack.id === state.studentRole);
+    } else {
+      // No role selected - show message, no packs available
+      grid.innerHTML = `
+        <div style="text-align:center;padding:3rem;background:white;border-radius:16px;box-shadow:0 2px 12px rgba(29,67,50,0.1)">
+          <div style="font-size:3rem;margin-bottom:1rem">🔒</div>
+          <div style="font-weight:800;font-size:1.1rem;color:#1B4332;margin-bottom:0.5rem">Kartu Terkunci</div>
+          <div style="font-size:0.9rem;color:#6B7280">Selesaikan <strong>Tahap 1</strong> dan pilih peranmu terlebih dahulu untuk membuka kartu eco card.</div>
+        </div>
+      `;
+      return;
+    }
+  }
+
+  // Render visible packs
+  grid.innerHTML = visiblePacks.map(pack => {
     const isOpened = !!state.openedPacks[pack.id];
     const cardCount = state.ecoCards.filter(c => c.type === pack.id).length;
     return `
@@ -141,16 +176,18 @@ function renderVideos() {
 
 // ══════════════════ OPEN ECO PACK ══════════════════
 function openEcoPack(packId) {
-  // HAPUS PEMBATASAN ROLE - siswa bisa buka semua paket
-  // Cek apakah sudah pernah buka paket sebelumnya
-  const alreadyOpened = Object.keys(state.openedPacks || {}).some(id => state.openedPacks[id]);
-  const isFirstOpen = !alreadyOpened;
+  // Admin can open any pack
+  // Students can only open packs matching their role
+  if (!state.isAdmin && state.studentRole && packId !== state.studentRole) {
+    showToast('⚠️ Kamu hanya bisa membuka kartu sesuai peranmu!');
+    return;
+  }
 
-  // HAPUS PEMBATASAN - siswa bisa buka semua paket
-  //if (alreadyOpened && !state.openedPacks[packId]) {
-  //  showToast('⚠️ Kamu hanya boleh memilih 1 paket. Selesaikan paket yang sudah dipilih dulu!');
-  //  return;
-  //}
+  // Students without role cannot open any pack
+  if (!state.isAdmin && !state.studentRole) {
+    showToast('⚠️ Selesaikan Tahap 1 dulu untuk memilih peranmu!');
+    return;
+  }
 
   const pack = ecoPacks.find(p => p.id === packId);
   if (!pack) return;
@@ -468,6 +505,12 @@ function renderAdminVideoList(videos) {
 }
 
 async function saveVideo() {
+  // Only allow admin to save videos
+  if (!state.isAdmin) {
+    showToast('⚠️ Akses ditolak. Fitur ini hanya untuk guru/admin.');
+    return;
+  }
+
   const url = document.getElementById('videoUrlInput').value.trim();
   const title = document.getElementById('videoTitleInput').value.trim();
   const desc = document.getElementById('videoDescInput').value.trim();
@@ -479,12 +522,14 @@ async function saveVideo() {
 
   try {
     const token = document.querySelector('meta[name="csrf-token"]').content;
+    const adminId = localStorage.getItem('admin_id') || '';
     const response = await fetch('/api/admin/video', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-CSRF-TOKEN': token
+        'X-CSRF-TOKEN': token,
+        'X-Admin-Id': adminId
       },
       body: JSON.stringify({
         youtube_url: url,
@@ -502,7 +547,7 @@ async function saveVideo() {
       closeModal('modal-addvideo');
       showToast('✅ Video berhasil disimpan!');
     } else {
-      showToast('❌ Gagal menyimpan video');
+      showToast('❌ ' + (data.message || 'Gagal menyimpan video'));
     }
   } catch(e) {
     console.error(e);
@@ -511,6 +556,12 @@ async function saveVideo() {
 }
 
 async function saveMultipleVideos() {
+  // Only allow admin to save videos
+  if (!state.isAdmin) {
+    showToast('⚠️ Akses ditolak. Fitur ini hanya untuk guru/admin.');
+    return;
+  }
+
   const urls = document.querySelectorAll('.video-url-input');
   const titles = document.querySelectorAll('.video-title-input');
   const descs = document.querySelectorAll('.video-desc-input');
@@ -535,12 +586,14 @@ async function saveMultipleVideos() {
 
   try {
     const token = document.querySelector('meta[name="csrf-token"]').content;
+    const adminId = localStorage.getItem('admin_id') || '';
     const response = await fetch('/api/admin/video', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-CSRF-TOKEN': token
+        'X-CSRF-TOKEN': token,
+        'X-Admin-Id': adminId
       },
       body: JSON.stringify({
         videos: videos,
@@ -554,7 +607,7 @@ async function saveMultipleVideos() {
       closeModal('modal-addvideo');
       showToast('✅ ' + videos.length + ' video berhasil disimpan!');
     } else {
-      showToast('❌ Gagal menyimpan video');
+      showToast('❌ ' + (data.message || 'Gagal menyimpan video'));
     }
   } catch(e) {
     console.error(e);
@@ -563,15 +616,23 @@ async function saveMultipleVideos() {
 }
 
 async function deleteVideo(videoId) {
+  // Only allow admin to delete videos
+  if (!state.isAdmin) {
+    showToast('⚠️ Akses ditolak. Fitur ini hanya untuk guru/admin.');
+    return;
+  }
+
   if (!confirm('Yakin ingin hapus video ini?')) return;
 
   try {
     const token = document.querySelector('meta[name="csrf-token"]').content;
+    const adminId = localStorage.getItem('admin_id') || '';
     const response = await fetch('/api/admin/video/' + videoId, {
       method: 'DELETE',
       headers: {
         'Accept': 'application/json',
-        'X-CSRF-TOKEN': token
+        'X-CSRF-TOKEN': token,
+        'X-Admin-Id': adminId
       }
     });
 
@@ -580,7 +641,7 @@ async function deleteVideo(videoId) {
       await refreshVideos();
       showToast('🗑️ Video berhasil dihapus!');
     } else {
-      showToast('❌ Gagal menghapus video');
+      showToast('❌ ' + (data.message || 'Gagal menghapus video'));
     }
   } catch(e) {
     console.error(e);
@@ -671,15 +732,32 @@ function addVideoInput() {
 function updateVideo() { saveVideo(); }
 
 function clearAllVideos() {
+  // Only allow admin to clear videos
+  if (!state.isAdmin) {
+    showToast('⚠️ Akses ditolak. Fitur ini hanya untuk guru/admin.');
+    return;
+  }
+
   if (!confirm('Yakin ingin hapus semua video?')) return;
   try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const adminId = localStorage.getItem('admin_id') || '';
     fetch('/api/admin/video', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': token,
+        'X-Admin-Id': adminId
+      },
       body: JSON.stringify({ stage: 'tahap2', videos: [] })
-    }).then(() => {
-      refreshVideos();
-      showToast('🗑️ Semua video berhasil dihapus!');
+    }).then((response) => {
+      if (response.ok) {
+        refreshVideos();
+        showToast('🗑️ Semua video berhasil dihapus!');
+      } else {
+        showToast('❌ Gagal menghapus video');
+      }
     });
   } catch(e) {
     showToast('❌ Gagal menghapus video');
@@ -1075,6 +1153,31 @@ function openMateriModal() {
 }
 window.openMateriModal = openMateriModal;
 
+// ══════════════════ RICH TEXT EDITOR FUNCTIONS ══════════════════
+
+// Format selected text in the contenteditable editor
+function formatText(command, value = null) {
+  document.execCommand(command, false, value);
+  // Focus back to editor
+  const editor = document.getElementById('materiContentEditor');
+  if (editor) {
+    editor.focus();
+  }
+}
+
+// Clear formatting
+function clearFormat() {
+  document.execCommand('removeFormat', false, null);
+  const editor = document.getElementById('materiContentEditor');
+  if (editor) {
+    editor.focus();
+  }
+}
+
+// Export to global scope
+window.formatText = formatText;
+window.clearFormat = clearFormat;
+
 // ══════════════════ ADMIN MATERI MANAGEMENT ══════════════════
 let adminMateriTab = 'materials';
 let adminMaterials = [];
@@ -1182,15 +1285,24 @@ function renderAdminMaterials() {
 function editMateri(id) {
   const mat = adminMaterials.find(m => m.id === id);
   if (!mat) return;
-  
+
   currentEditMateriId = id;
   document.getElementById('materiId').value = id;
   document.getElementById('materiTitle').value = mat.title || '';
   document.getElementById('materiSubtitle').value = mat.subtitle || '';
   document.getElementById('materiIcon').value = mat.icon || '📦';
   document.getElementById('materiBorderColor').value = mat.border_color || '#1B4332';
-  document.getElementById('materiContent').value = mat.content || '';
-  
+
+  // Set content in the contenteditable editor
+  const editor = document.getElementById('materiContentEditor');
+  const hiddenContent = document.getElementById('materiContent');
+  if (editor) {
+    editor.innerHTML = mat.content || '';
+  }
+  if (hiddenContent) {
+    hiddenContent.value = mat.content || '';
+  }
+
   showToast('Mode edit aktif', 'info');
 }
 
@@ -1201,7 +1313,16 @@ function resetMateriForm() {
   document.getElementById('materiSubtitle').value = '';
   document.getElementById('materiIcon').value = '📦';
   document.getElementById('materiBorderColor').value = '#1B4332';
-  document.getElementById('materiContent').value = '';
+
+  // Clear contenteditable editor
+  const editor = document.getElementById('materiContentEditor');
+  const hiddenContent = document.getElementById('materiContent');
+  if (editor) {
+    editor.innerHTML = '';
+  }
+  if (hiddenContent) {
+    hiddenContent.value = '';
+  }
 }
 
 async function saveMateri() {
@@ -1210,33 +1331,41 @@ async function saveMateri() {
   const subtitle = document.getElementById('materiSubtitle').value.trim();
   const icon = document.getElementById('materiIcon').value.trim();
   const borderColor = document.getElementById('materiBorderColor').value.trim();
-  const content = document.getElementById('materiContent').value;
-  
+
+  // Get content from contenteditable editor
+  const editor = document.getElementById('materiContentEditor');
+  const content = editor ? editor.innerHTML : '';
+
   if (!title) {
     showToast('Judul harus diisi', 'warning');
     return;
   }
-  
+
+  if (!content || content.trim() === '') {
+    showToast('Konten materi harus diisi', 'warning');
+    return;
+  }
+
   const payload = { title, subtitle, icon, border_color: borderColor, content };
   const isEdit = !!id;
-  
+
   try {
     const url = isEdit ? `/api/admin/literasi/materials/${id}` : '/api/admin/literasi/materials';
     const method = isEdit ? 'PUT' : 'POST';
-    
+
     const response = await fetch(url, {
       method,
       headers: getAdminHeaders(),
       body: JSON.stringify(payload)
     });
-    
+
     if (!response.ok) throw new Error('Gagal menyimpan');
-    
+
     showToast(isEdit ? 'Materi berhasil diupdate!' : 'Materi berhasil ditambahkan!', 'success');
-    
+
     resetMateriForm();
     loadAdminMaterials();
-    
+
   } catch (error) {
     showToast('Gagal menyimpan materi', 'error');
     console.error('Error:', error);
@@ -1427,6 +1556,11 @@ async function confirmDelete() {
 window.confirmDelete = confirmDelete;
 
 function openManageMateriModal() {
+  // Only allow admin/validator to access manage modal
+  if (!state.isAdmin) {
+    showToast('⚠️ Akses ditolak. Fitur ini hanya untuk guru/admin.');
+    return;
+  }
   openModal('modal-manage-materi');
   adminMaterials = [];
   adminQuestions = [];

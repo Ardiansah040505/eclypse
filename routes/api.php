@@ -15,6 +15,7 @@ use App\Http\Controllers\Student\ReflectionController;
 use App\Http\Controllers\Student\StudentNewsAnswerController;
 use App\Http\Controllers\Admin\GroupController;
 use App\Http\Controllers\Admin\DownloadController;
+use App\Http\Controllers\Admin\ExcelExportController;
 
 // Routes Tahap 5 - Refleksi Questions (Admin CRUD)
 Route::get('refleksi-questions', [RefleksiQuestionController::class, 'index']);
@@ -137,3 +138,6 @@ Route::prefix('admin')->group(function () {
 Route::get('admin/download/prep', [DownloadController::class, 'prepCsv']);
 Route::get('admin/download/materi', [DownloadController::class, 'materiCsv']);
 Route::get('admin/download/all', [DownloadController::class, 'allCsv']);
+
+// Admin Excel Export (Per School - New Format)
+Route::get('admin/excel/export', [ExcelExportController::class, 'downloadPerSchool']);

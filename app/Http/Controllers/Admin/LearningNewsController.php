@@ -9,6 +9,15 @@ use Illuminate\Support\Str;
 
 class LearningNewsController extends Controller
 {
+    /**
+     * Check if request is from authenticated admin
+     */
+    private function isAdminRequest(Request $request): bool
+    {
+        $adminId = $request->header('X-Admin-Id') ?: $request->input('admin_id');
+        return !empty($adminId);
+    }
+
     public function index()
     {
         return response()->json(
@@ -23,13 +32,20 @@ class LearningNewsController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'title' => 'required',
-        'content' => 'required'
-    ]);
+    {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
 
-    $news = LearningNews::create([
+        $request->validate([
+            'title' => 'required',
+            'content' => 'required'
+        ]);
+
+        $news = LearningNews::create([
 
         'title' => $request->title,
 
@@ -43,26 +59,33 @@ class LearningNewsController extends Controller
 
         'status' => 'draft',
 
-        'created_by' => 1,//session('admin_id')
+        'created_by' => $request->header('X-Admin-Id') ?: 1,
 
     ]);
 
-    return response()->json([
-        'success' => true,
-        'news' => $news
-    ]);
-}
+        return response()->json([
+            'success' => true,
+            'news' => $news
+        ]);
+    }
 
-public function update(Request $request, $id)
-{
-    $request->validate([
-        'title' => 'required',
-        'content' => 'required'
-    ]);
+    public function update(Request $request, $id)
+    {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
 
-    $news = LearningNews::findOrFail($id);
+        $request->validate([
+            'title' => 'required',
+            'content' => 'required'
+        ]);
 
-    $news->update([
+        $news = LearningNews::findOrFail($id);
+
+        $news->update([
 
         'title' => $request->title,
 
@@ -76,23 +99,30 @@ public function update(Request $request, $id)
 
     ]);
 
-    return response()->json([
+        return response()->json([
 
         'success' => true,
 
         'news' => $news
 
     ]);
-}
+    }
 
-public function destroy($id)
-{
-    LearningNews::findOrFail($id)->delete();
+    public function destroy(Request $request, $id)
+    {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
 
-    return response()->json([
+        LearningNews::findOrFail($id)->delete();
+
+        return response()->json([
 
         'success'=>true
 
     ]);
-}
+    }
 }

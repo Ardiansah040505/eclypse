@@ -8,6 +8,15 @@ use Illuminate\Support\Facades\DB;
 
 class GroupController extends Controller
 {
+    /**
+     * Check if request is from authenticated admin
+     */
+    private function isAdminRequest(\Illuminate\Http\Request $request): bool
+    {
+        $adminId = $request->header('X-Admin-Id') ?: $request->input('admin_id');
+        return !empty($adminId);
+    }
+
     public function index()
     {
         $groups = DB::table('debate_groups')->get();
@@ -23,6 +32,13 @@ class GroupController extends Controller
 
     public function store(\Illuminate\Http\Request $r)
     {
+        if (!$this->isAdminRequest($r)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         $r->validate(['name' => 'required']);
         $side = strtolower($r->side) === 'kontra' || strtolower($r->side) === 'con' ? 'con' : 'pro';
         $icons = ['🌿','⚡','🌊','🔥','🌪️','🌱'];
@@ -41,6 +57,13 @@ class GroupController extends Controller
 
     public function update(\Illuminate\Http\Request $r, $id)
     {
+        if (!$this->isAdminRequest($r)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         $r->validate(['name' => 'required']);
         $side = strtolower($r->side) === 'kontra' || strtolower($r->side) === 'con' ? 'con' : 'pro';
         $icon = $r->icon ?? '👥';
@@ -104,14 +127,28 @@ class GroupController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function removeStudent($studentId)
+    public function removeStudent(\Illuminate\Http\Request $r, $studentId)
     {
+        if (!$this->isAdminRequest($r)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         DB::table('group_members')->where('student_id', $studentId)->delete();
         return response()->json(['success' => true]);
     }
 
-    public function destroy($id)
+    public function destroy(\Illuminate\Http\Request $r, $id)
     {
+        if (!$this->isAdminRequest($r)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         // Delete all group members first
         DB::table('group_members')->where('debate_group_id', $id)->delete();
 
@@ -246,6 +283,13 @@ class GroupController extends Controller
      */
     public function autoBalance(\Illuminate\Http\Request $r)
     {
+        if (!$this->isAdminRequest($r)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         // Get all students with their eco_role
         $students = DB::table('users')
             ->where('role', 'student')
@@ -384,6 +428,13 @@ class GroupController extends Controller
      */
     public function assignByRole(\Illuminate\Http\Request $r)
     {
+        if (!$this->isAdminRequest($r)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         $assignments = $r->input('assignments', []);
 
         if (empty($assignments)) {

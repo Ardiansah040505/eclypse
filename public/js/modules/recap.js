@@ -284,8 +284,56 @@ function downloadRecapCSV() {
   });
 }
 
+// ══════════════════ EXCEL EXPORT ══════════════════
+function downloadRecapExcel() {
+  if (!state.isAdmin) {
+    showToast('⚠️ Fitur ini hanya untuk Admin');
+    return;
+  }
+
+  const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const adminId = state.user?.id;
+
+  showToast('⏳ Menyiapkan file Excel...');
+
+  fetch('/api/admin/excel/export', {
+    headers: {
+      'X-CSRF-TOKEN': token,
+      'X-Admin-Id': adminId || '',
+      'Accept': 'application/json'
+    }
+  })
+  .then(res => {
+    if (!res.ok) {
+      if (res.status === 401) {
+        showToast('⚠️ Silakan login sebagai Admin terlebih dahulu');
+      } else {
+        showToast('⚠️ Gagal membuat Excel');
+      }
+      throw new Error('Excel export failed');
+    }
+    return res.blob();
+  })
+  .then(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Rekap_ECLYPSE_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ Excel berhasil diunduh!');
+  })
+  .catch(err => {
+    console.error('Excel export error:', err);
+    showToast('⚠️ Gagal membuat Excel');
+  });
+}
+
 // Export functions globally
 window.downloadRecapCSV = downloadRecapCSV;
+window.downloadRecapExcel = downloadRecapExcel;
 window.updateProgressBar = updateProgressBar;
 
 // ══════════════════════════════════════════════════════════════════════════

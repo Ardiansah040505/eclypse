@@ -110,7 +110,10 @@
           <div style="font-weight:800;font-size:1.05rem;color:var(--dark);margin-bottom:4px">📊 Rekap Hasil Belajar Siswa</div>
           <div id="adminRecapSummary" style="font-size:0.85rem;color:var(--gray)">Memuat data...</div>
         </div>
-        <button class="btn-sm yellow" onclick="downloadRecapCSV()">⬇️ Download Rekap CSV</button>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          <button class="btn-sm green" onclick="downloadRecapExcel()">📊 Download Excel</button>
+          <button class="btn-sm yellow" onclick="downloadRecapCSV()">⬇️ Download CSV</button>
+        </div>
       </div>
     </div>
 

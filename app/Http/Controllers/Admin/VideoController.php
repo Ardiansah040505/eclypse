@@ -9,6 +9,28 @@ use Illuminate\Http\Request;
 class VideoController extends Controller
 {
     /**
+     * Check if request is from authenticated admin
+     */
+    private function isAdminRequest(Request $request): bool
+    {
+        $adminId = $request->header('X-Admin-Id') ?: $request->input('admin_id');
+        return !empty($adminId);
+    }
+
+    /**
+     * Get authenticated admin user
+     */
+    private function getAdminUser(Request $request)
+    {
+        $adminId = $request->header('X-Admin-Id') ?: $request->input('admin_id');
+        if (!$adminId) return null;
+
+        return \App\Models\User::where('id', $adminId)
+            ->where('role', 'admin')
+            ->first();
+    }
+
+    /**
      * Ambil video aktif berdasarkan stage (default: tahap2)
      * GET /video?stage=tahap2
      */
@@ -31,14 +53,18 @@ class VideoController extends Controller
 
     /**
      * Simpan/update video(s)
-     * POST /admin/video
-     *
-     * Payload options:
-     * - Single video: { youtube_url, title, description, stage, order }
-     * - Multiple videos: { videos: [{ youtube_url, title, description, order }, ...], stage }
+     * POST /api/admin/video
+     * Requires X-Admin-Id header or admin_id input
      */
     public function save(Request $request)
     {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         $stage = $request->get('stage', $request->input('stage', 'tahap2'));
 
         // Handle multiple videos
@@ -110,10 +136,18 @@ class VideoController extends Controller
 
     /**
      * Hapus video berdasarkan ID
-     * DELETE /admin/video/{id}
+     * DELETE /api/admin/video/{id}
+     * Requires X-Admin-Id header
      */
-    public function delete($id)
+    public function delete(Request $request, $id)
     {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         $video = LearningVideo::find($id);
 
         if (!$video) {
@@ -133,10 +167,18 @@ class VideoController extends Controller
 
     /**
      * Toggle active status video
-     * POST /admin/video/{id}/toggle
+     * POST /api/admin/video/{id}/toggle
+     * Requires X-Admin-Id header
      */
-    public function toggle($id)
+    public function toggle(Request $request, $id)
     {
+        if (!$this->isAdminRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Akses hanya untuk guru/admin.'
+            ], 401);
+        }
+
         $video = LearningVideo::find($id);
 
         if (!$video) {
