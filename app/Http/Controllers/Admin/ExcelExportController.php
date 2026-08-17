@@ -17,19 +17,31 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class ExcelExportController extends Controller
 {
     /**
-     * Download Excel report per school
+     * Download Excel report per class (kelas)
      */
     public function downloadPerSchool(Request $request)
     {
-        $schools = User::where('role', 'student')
+        // Group by: sekolah + kelas
+        $classes = User::where('role', 'student')
             ->whereNotNull('school')
+            ->whereNotNull('kelas')
+            ->select('school', 'kelas')
             ->distinct()
-            ->pluck('school');
+            ->orderBy('school')
+            ->orderBy('kelas')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'school' => $item->school,
+                    'kelas' => $item->kelas,
+                    'key' => $item->school . '|' . $item->kelas
+                ];
+            });
 
-        if ($schools->isEmpty()) {
+        if ($classes->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Belum ada data siswa'
+                'message' => 'Belum ada data siswa dengan kelas'
             ]);
         }
 
@@ -91,20 +103,26 @@ class ExcelExportController extends Controller
             ]
         ];
 
-        foreach ($schools as $school) {
-            // Create new sheet for this school
-            $sheetName = $this->cleanSheetName($school);
+        foreach ($classes as $class) {
+            $school = $class['school'];
+            $kelas = $class['kelas'];
+            $key = $class['key'];
+
+            // Create new sheet for this class
+            $sheetName = $this->cleanSheetName($kelas);
             $sheet = new Worksheet($spreadsheet, $sheetName);
 
-            // Get students from this school
+            // Get students from this class
             $students = User::where('role', 'student')
                 ->where('school', $school)
+                ->where('kelas', $kelas)
+                ->orderBy('absen')
                 ->orderBy('name')
                 ->get();
 
             // Build dynamic columns based on available questions
-            $columns = ['Nama', 'NIS'];
-            $questionMap = []; // question_id => column_letter
+            $columns = ['Nama', 'Absen'];
+            $questionMap = [];
 
             // Get all available questions for each tahap
             foreach ($tahapConfig as $tahap => $config) {
@@ -150,8 +168,24 @@ class ExcelExportController extends Controller
                 $colIndex++;
             }
 
-            // Fill student data
-            $rowIndex = 2;
+            // Add school info row
+            $sheet->getCellByColumnAndRow(1, 2)->setValue('Sekolah:');
+            $sheet->getCellByColumnAndRow(2, 2)->setValue($school);
+            $sheet->getCellByColumnAndRow(3, 2)->setValue('Kelas:');
+            $sheet->getCellByColumnAndRow(4, 2)->setValue($kelas);
+
+            // Style info row
+            $sheet->getStyle('A2:' . $this->getColumnLetter(count($columns)) . '2')
+                ->applyFromArray([
+                    'font' => ['bold' => true],
+                    'fill' => [
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'E8F5E9']
+                    ]
+                ]);
+
+            // Fill student data starting from row 3
+            $rowIndex = 3;
             $studentIds = $students->pluck('id')->toArray();
 
             foreach ($students as $student) {
@@ -159,8 +193,8 @@ class ExcelExportController extends Controller
 
                 // Nama
                 $sheet->getCellByColumnAndRow($colIndex++, $rowIndex)->setValue($student->name);
-                // NIS
-                $sheet->getCellByColumnAndRow($colIndex++, $rowIndex)->setValue($student->nis ?? '');
+                // Absen
+                $sheet->getCellByColumnAndRow($colIndex++, $rowIndex)->setValue($student->absen ?? '');
 
                 // Get answers for each column
                 $answers = $this->getAnswersForStudent($student->id, $tahapConfig);
@@ -220,7 +254,11 @@ class ExcelExportController extends Controller
                 }
             }
 
-            // Freeze header row
+            // Set minimum width for Nama and Absen columns
+            $sheet->getColumnDimension('A')->setWidth(20);
+            $sheet->getColumnDimension('B')->setWidth(8);
+
+            // Freeze header row (row 1)
             $sheet->freezePane('A2');
 
             // Set title row height

@@ -16,9 +16,15 @@
         <label>Nama Lengkap</label>
         <input type="text" id="loginNama" placeholder="Tulis nama lengkapmu..." autocomplete="name">
       </div>
-      <div class="form-group">
-        <label>NIS (Nomor Induk Siswa)</label>
-        <input type="text" id="loginNIS" placeholder="Contoh: 2024001..." autocomplete="off" inputmode="numeric">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>No. Absen</label>
+          <input type="text" id="loginAbsen" placeholder="Contoh: 01..." autocomplete="off" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label>Kelas</label>
+          <input type="text" id="loginKelas" placeholder="Contoh: X IPA 1..." autocomplete="off">
+        </div>
       </div>
       <div class="form-group">
         <label>Nama Sekolah</label>

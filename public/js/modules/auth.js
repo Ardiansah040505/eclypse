@@ -31,7 +31,8 @@ async function doLoginSiswa() {
     console.log("LOGIN SISWA DIKLIK");
 
     const nama = document.getElementById('loginNama').value.trim();
-    const nis = document.getElementById('loginNIS').value.trim();
+    const absen = document.getElementById('loginAbsen').value.trim();
+    const kelas = document.getElementById('loginKelas').value.trim();
     const sekolah = document.getElementById('loginSekolah').value.trim();
 
     if (!nama) {
@@ -39,8 +40,13 @@ async function doLoginSiswa() {
         return;
     }
 
-    if (!nis) {
-        showToast('⚠️ NIS wajib diisi!');
+    if (!absen) {
+        showToast('⚠️ No. Absen wajib diisi!');
+        return;
+    }
+
+    if (!kelas) {
+        showToast('⚠️ Kelas wajib diisi!');
         return;
     }
 
@@ -61,11 +67,10 @@ async function doLoginSiswa() {
             },
 
             body: JSON.stringify({
-
                 name: nama,
-                nis: nis,
+                absen: absen,
+                kelas: kelas,
                 school: sekolah
-
             })
 
         });
@@ -88,6 +93,8 @@ async function doLoginSiswa() {
 
         state.user = data.user;
         state.user.nama = data.user.name;
+        state.user.absen = data.user.absen;
+        state.user.kelas = data.user.kelas;
         state.user.sekolah = data.user.school;
 
         state.isAdmin = false;
@@ -340,6 +347,8 @@ async function restoreSession() {
     // Token valid → pulihkan session
     state.user = data.user;
     state.user.nama    = data.user.name;
+    state.user.absen   = data.user.absen;
+    state.user.kelas   = data.user.kelas;
     state.user.sekolah = data.user.school;
     state.isAdmin      = data.is_admin === true;
 

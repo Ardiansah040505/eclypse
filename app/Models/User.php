@@ -12,10 +12,13 @@ use Illuminate\Notifications\Notifiable;
 #[Fillable([
     'name',
     'nis',
+    'absen',
     'school',
+    'kelas',
     'username',
     'password',
     'role',
+    'eco_role',
 ])]
 
 #[Hidden([
