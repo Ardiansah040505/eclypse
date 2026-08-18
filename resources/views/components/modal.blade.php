@@ -343,7 +343,7 @@
 
 {{-- Modal: Tambah/Edit Tujuan Pembelajaran --}}
 <div class="modal-overlay" id="modal-learning-objective">
-  <div class="modal-box" style="max-width:500px">
+  <div class="modal-box" style="max-width:550px">
     <div class="modal-header">
       <div class="modal-title" id="objectiveModalTitle">🎯 Tambah Tujuan Pembelajaran</div>
       <button class="modal-close" onclick="closeModal('modal-learning-objective')">✕</button>
@@ -352,7 +352,21 @@
       <input type="hidden" id="objectiveId">
       <div style="margin-bottom:1rem">
         <label>Tujuan Pembelajaran</label>
-        <textarea id="objectiveText" placeholder="Tuliskan tujuan pembelajaran di sini..." style="width:100%;min-height:100px;padding:10px;border:2px solid var(--green-pale);border-radius:8px;font-size:0.9rem;resize:vertical;font-family:'Nunito',sans-serif"></textarea>
+        <div class="rich-text-editor" id="objectiveEditorWrapper">
+          <div class="rich-text-toolbar">
+            <button type="button" onclick="execCmd('bold')" title="Bold (Ctrl+B)" data-command="bold"><b>B</b></button>
+            <button type="button" onclick="execCmd('italic')" title="Italic (Ctrl+I)" data-command="italic"><i>I</i></button>
+            <button type="button" onclick="execCmd('underline')" title="Underline (Ctrl+U)" data-command="underline"><u>U</u></button>
+            <button type="button" onclick="execCmd('strikeThrough')" title="Strikethrough" data-command="strikeThrough"><s>S</s></button>
+            <div class="toolbar-divider"></div>
+            <button type="button" onclick="execCmd('insertUnorderedList')" title="Daftar Bullet" data-command="insertUnorderedList">•</button>
+            <button type="button" onclick="execCmd('insertOrderedList')" title="Daftar Nomor" data-command="insertOrderedList">1.</button>
+            <div class="toolbar-divider"></div>
+            <button type="button" onclick="execCmd('removeFormat')" title="Hapus Format" data-command="removeFormat" style="font-size:0.7rem">Clear</button>
+          </div>
+          <div class="rich-text-content" id="objectiveText" contenteditable="true" data-placeholder="Tuliskan tujuan pembelajaran di sini..." onkeyup="updateToolbarState()"></div>
+        </div>
+        <input type="hidden" id="objectiveTextInput" name="text">
       </div>
       <div style="display:flex;gap:0.5rem">
         <button class="btn-sm green" onclick="saveLearningObjective()">💾 Simpan</button>

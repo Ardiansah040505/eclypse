@@ -2,7 +2,33 @@
 // LEARNING OBJECTIVES (Tujuan Pembelajaran) MODULE
 // ══════════════════════════════════════════════════════════════════════════
 
-// Simple HTML Escaper
+// ──────────────────────────────────────────────────────────────────────────
+// Rich Text Editor Functions
+// ──────────────────────────────────────────────────────────────────────────
+
+// Execute formatting command
+function execCmd(command, value = null) {
+    document.execCommand(command, false, value);
+    const editor = document.getElementById('objectiveText');
+    if (editor) editor.focus();
+    updateToolbarState();
+}
+
+// Update toolbar button states based on current cursor position
+function updateToolbarState() {
+    const commands = ['bold', 'italic', 'underline', 'strikeThrough'];
+    commands.forEach(cmd => {
+        const btn = document.querySelector(`button[data-command="${cmd}"]`);
+        if (btn) {
+            const isActive = document.queryCommandState(cmd);
+            btn.classList.toggle('active', isActive);
+        }
+    });
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Escape HTML (for plain text display)
+// ──────────────────────────────────────────────────────────────────────────
 function escapeHtml(text) {
     if (!text) return '';
     return text
@@ -13,7 +39,9 @@ function escapeHtml(text) {
         .replace(/'/g, "&#039;");
 }
 
+// ──────────────────────────────────────────────────────────────────────────
 // Fetch and render learning objectives
+// ──────────────────────────────────────────────────────────────────────────
 async function loadLearningObjectives() {
     const container = document.getElementById('objectivesListContainer');
     const addBtn = document.getElementById('addObjectiveBtn');
@@ -46,7 +74,9 @@ async function loadLearningObjectives() {
     }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
 // Render learning objectives list
+// ──────────────────────────────────────────────────────────────────────────
 function renderLearningObjectives() {
     const container = document.getElementById('objectivesListContainer');
     if (!container) return;
@@ -65,12 +95,12 @@ function renderLearningObjectives() {
 
     let html = '';
     objectives.forEach(obj => {
-        const escapedText = escapeHtml(obj.text);
+        // Display HTML content directly for rich text
         html += `
             <div class="objective-item" style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; padding:12px 16px; background:#f9fbf9; border: 1px solid rgba(82,183,136,0.15); border-radius:12px; transition:all 0.2s">
                 <div style="display:flex; gap:10px; align-items:flex-start">
                     <span style="color:var(--green-light); font-weight:bold; font-size:1.1rem; line-height:1.2">✔️</span>
-                    <span style="font-size:0.95rem; color:var(--dark); line-height:1.4">${escapedText}</span>
+                    <div class="formatted-text" style="font-size:0.95rem; color:var(--dark); line-height:1.4">${obj.text}</div>
                 </div>
                 ${state.isAdmin ? `
                     <div style="display:flex; gap:6px; flex-shrink:0">
@@ -85,31 +115,46 @@ function renderLearningObjectives() {
     container.innerHTML = html;
 }
 
+// ──────────────────────────────────────────────────────────────────────────
 // Open modal to add new objective
+// ──────────────────────────────────────────────────────────────────────────
 function openAddObjectiveModal() {
     document.getElementById('objectiveId').value = '';
-    document.getElementById('objectiveText').value = '';
+    const editor = document.getElementById('objectiveText');
+    if (editor) {
+        editor.innerHTML = '';
+    }
     document.getElementById('objectiveModalTitle').textContent = '🎯 Tambah Tujuan Pembelajaran';
+    updateToolbarState();
     openModal('modal-learning-objective');
 }
 
+// ──────────────────────────────────────────────────────────────────────────
 // Open modal to edit objective
+// ──────────────────────────────────────────────────────────────────────────
 function openEditObjectiveModal(id) {
     const obj = state.learningObjectives.find(o => o.id === id);
     if (!obj) return;
 
     document.getElementById('objectiveId').value = obj.id;
-    document.getElementById('objectiveText').value = obj.text;
+    const editor = document.getElementById('objectiveText');
+    if (editor) {
+        editor.innerHTML = obj.text || '';
+    }
     document.getElementById('objectiveModalTitle').textContent = '✏️ Edit Tujuan Pembelajaran';
+    updateToolbarState();
     openModal('modal-learning-objective');
 }
 
+// ──────────────────────────────────────────────────────────────────────────
 // Save objective (Create or Update)
+// ──────────────────────────────────────────────────────────────────────────
 async function saveLearningObjective() {
     const id = document.getElementById('objectiveId').value;
-    const text = document.getElementById('objectiveText').value.trim();
+    const editor = document.getElementById('objectiveText');
+    const text = editor ? editor.innerHTML.trim() : '';
 
-    if (!text) {
+    if (!text || text === '<br>' || text === '<div><br></div>') {
         showToast('⚠️ Tujuan pembelajaran tidak boleh kosong!');
         return;
     }
@@ -143,7 +188,9 @@ async function saveLearningObjective() {
     }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
 // Delete objective
+// ──────────────────────────────────────────────────────────────────────────
 async function deleteObjective(id) {
     if (!confirm('Apakah Bapak/Ibu yakin ingin menghapus tujuan pembelajaran ini?')) {
         return;
@@ -171,10 +218,46 @@ async function deleteObjective(id) {
     }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Initialize rich text editor event listeners
+// ──────────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    const editor = document.getElementById('objectiveText');
+    if (editor) {
+        // Update toolbar on selection change
+        editor.addEventListener('keyup', updateToolbarState);
+        editor.addEventListener('mouseup', updateToolbarState);
+
+        // Handle keyboard shortcuts
+        editor.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key.toLowerCase()) {
+                    case 'b':
+                        e.preventDefault();
+                        execCmd('bold');
+                        break;
+                    case 'i':
+                        e.preventDefault();
+                        execCmd('italic');
+                        break;
+                    case 'u':
+                        e.preventDefault();
+                        execCmd('underline');
+                        break;
+                }
+            }
+        });
+    }
+});
+
+// ──────────────────────────────────────────────────────────────────────────
 // Export functions to window
+// ──────────────────────────────────────────────────────────────────────────
 window.loadLearningObjectives = loadLearningObjectives;
 window.renderLearningObjectives = renderLearningObjectives;
 window.openAddObjectiveModal = openAddObjectiveModal;
 window.openEditObjectiveModal = openEditObjectiveModal;
 window.saveLearningObjective = saveLearningObjective;
 window.deleteObjective = deleteObjective;
+window.execCmd = execCmd;
+window.updateToolbarState = updateToolbarState;

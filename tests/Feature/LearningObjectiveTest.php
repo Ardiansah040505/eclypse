@@ -89,4 +89,49 @@ class LearningObjectiveTest extends TestCase
             'id' => $objective->id,
         ]);
     }
+
+    /**
+     * Test storing a learning objective with HTML rich text formatting.
+     */
+    public function test_can_store_learning_objective_with_html_formatting(): void
+    {
+        $htmlContent = '<p>Memahami <strong>pemanasan global</strong> dan dampaknya.</p><ul><li>Causes</li><li>Effects</li></ul>';
+
+        $response = $this->postJson('/api/admin/learning-objectives', [
+            'text' => $htmlContent,
+        ]);
+
+        $response->assertStatus(200)
+                 ->assertJson([
+                     'success' => true,
+                 ]);
+
+        $this->assertDatabaseHas('learning_objectives', [
+            'text' => $htmlContent,
+        ]);
+    }
+
+    /**
+     * Test updating a learning objective with HTML rich text formatting.
+     */
+    public function test_can_update_learning_objective_with_html_formatting(): void
+    {
+        $objective = LearningObjective::create(['text' => 'Tujuan Awal']);
+
+        $htmlContent = '<p><i>Updated</i> with <b>bold</b> and <u>underline</u>.</p>';
+
+        $response = $this->putJson("/api/admin/learning-objectives/{$objective->id}", [
+            'text' => $htmlContent,
+        ]);
+
+        $response->assertStatus(200)
+                 ->assertJson([
+                     'success' => true,
+                 ]);
+
+        $this->assertDatabaseHas('learning_objectives', [
+            'id' => $objective->id,
+            'text' => $htmlContent,
+        ]);
+    }
 }
