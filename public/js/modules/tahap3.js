@@ -7,11 +7,17 @@ let cachedAdminPrepQuestions = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 30000; // 30 detik cache
 
-// Load ALL questions for students (show both role-specific AND universal questions)
+// Load questions for students (filtered by their selected role)
 async function loadPrepQuestions() {
   try {
-    // Fetch all questions without role filter so students see both universal AND role-specific
-    const res = await fetch('/api/preparation/questions?role=all');
+    // Ensure student role is loaded from localStorage if not set
+    if (!state.studentRole && state.user) {
+      loadStudentRole();
+    }
+
+    // Get student's selected role from state, default to 'all' if not set
+    const studentRole = state.studentRole || 'all';
+    const res = await fetch(`/api/preparation/questions?role=${studentRole}`);
     const data = await res.json();
     if (data.success) state.prepQuestions = data.data || [];
     renderPrepForm();

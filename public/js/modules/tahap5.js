@@ -380,15 +380,21 @@ async function deleteReflection(id) {
 
 // ══════════════════ REFLEKSI QUESTIONS FOR STUDENT (Tahap 5) ══════════════════
 
-// Muat SEMUA pertanyaan refleksi untuk SISWA (tanpa filter role)
+// Muat pertanyaan refleksi untuk SISWA berdasarkan role yang dipilih di Tahap 1
 async function loadStudentPrepQuestions() {
   try {
-    // Load ALL refleksi questions since students don't have eco_role anymore
-    const res = await fetch('/api/refleksi-questions/student?role=all');
+    // Ensure student role is loaded from localStorage if not set
+    if (!state.studentRole && state.user) {
+      loadStudentRole();
+    }
+
+    // Get student's selected role from state, default to 'all' if not set
+    const studentRole = state.studentRole || 'all';
+    const res = await fetch(`/api/refleksi-questions/student?role=${studentRole}`);
     const data = await res.json();
 
     if (data.success) {
-      renderStudentRefleksiQuestions(data.data || [], 'all');
+      renderStudentRefleksiQuestions(data.data || [], studentRole);
     }
   } catch (e) {
     console.error('[Tahap5] Error loading student refleksi questions:', e);
