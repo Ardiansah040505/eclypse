@@ -173,7 +173,7 @@ class ExcelExportController extends Controller
             // Set column headers
             $colIndex = 1;
             foreach ($columns as $colName) {
-                $cell = $sheet->getCellByColumnAndRow($colIndex, 1);
+                $cell = $sheet->getCell([$colIndex, 1]);
                 $cell->setValue($colName);
 
                 // Header styling
@@ -202,10 +202,10 @@ class ExcelExportController extends Controller
             }
 
             // Add school info row
-            $sheet->getCellByColumnAndRow(1, 2)->setValue('Sekolah:');
-            $sheet->getCellByColumnAndRow(2, 2)->setValue($school);
-            $sheet->getCellByColumnAndRow(3, 2)->setValue('Kelas:');
-            $sheet->getCellByColumnAndRow(4, 2)->setValue($kelas);
+            $sheet->getCell([1, 2])->setValue('Sekolah:');
+            $sheet->getCell([2, 2])->setValue($school);
+            $sheet->getCell([3, 2])->setValue('Kelas:');
+            $sheet->getCell([4, 2])->setValue($kelas);
 
             // Style info row
             $sheet->getStyle('A2:' . $this->getColumnLetter(count($columns)) . '2')
@@ -225,15 +225,15 @@ class ExcelExportController extends Controller
                 $colIndex = 1;
 
                 // Nama
-                $sheet->getCellByColumnAndRow($colIndex++, $rowIndex)->setValue($student->name);
+                $sheet->getCell([$colIndex++, $rowIndex])->setValue($student->name);
                 // Absen
-                $sheet->getCellByColumnAndRow($colIndex++, $rowIndex)->setValue($student->absen ?? '');
+                $sheet->getCell([$colIndex++, $rowIndex])->setValue($student->absen ?? '');
 
                 // Get answers for each column
                 $answers = $this->getAnswersForStudent($student->id, $tahapConfig);
 
                 foreach (array_slice($columns, 2) as $colIdx => $colName) {
-                    $cell = $sheet->getCellByColumnAndRow($colIdx + 3, $rowIndex);
+                    $cell = $sheet->getCell([$colIdx + 3, $rowIndex]);
 
                     // Find answer for this column
                     $answer = $this->findAnswerForColumn($colName, $answers, $columnQuestions);
