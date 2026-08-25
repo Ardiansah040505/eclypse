@@ -221,6 +221,7 @@
   height: auto;
   position: relative;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .gacha-below {
@@ -233,7 +234,10 @@
   position: relative;
   z-index: 2;
 }
-.gacha-flip-card.is-flipped { transform: rotateY(180deg); }
+.gacha-flip-card.is-flipped {
+  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
+}
 .gacha-face {
   position: absolute;
   top: 0; left: 0;
@@ -242,13 +246,19 @@
   height: auto;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  overflow-y: visible;
+  overflow: visible !important;
   pointer-events: none;
   padding: 2rem;
   box-sizing: border-box;
 }
-.gacha-face-front { transform: rotateY(0deg); }
-.gacha-face-back { transform: rotateY(180deg); }
+.gacha-face-front {
+  transform: rotateY(0deg) translateZ(1px);
+  -webkit-transform: rotateY(0deg) translateZ(1px);
+}
+.gacha-face-back {
+  transform: rotateY(180deg) translateZ(1px);
+  -webkit-transform: rotateY(180deg) translateZ(1px);
+}
 .gacha-flip-hint {
   margin-top: 1.5rem;
   font-size: 0.85rem;

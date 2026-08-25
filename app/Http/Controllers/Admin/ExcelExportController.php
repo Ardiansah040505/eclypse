@@ -48,10 +48,6 @@ class ExcelExportController extends Controller
         // Create new spreadsheet
         $spreadsheet = new Spreadsheet();
 
-        // Remove default sheet
-        $spreadsheet->discardActiveWorksheet();
-        $spreadsheet->removeSheetByIndex(0);
-
         $tahapConfig = [
             'a' => [
                 'name' => 'Tahap 1 - Climate News',
@@ -103,14 +99,31 @@ class ExcelExportController extends Controller
             ]
         ];
 
+        $isFirst = true;
         foreach ($classes as $class) {
             $school = $class['school'];
             $kelas = $class['kelas'];
             $key = $class['key'];
 
-            // Create new sheet for this class
+            // Create or get sheet for this class
             $sheetName = $this->cleanSheetName($kelas);
-            $sheet = new Worksheet($spreadsheet, $sheetName);
+
+            // Resolve duplicate sheet names (excel sheet name must be unique and <= 31 characters)
+            $originalSheetName = $sheetName;
+            $suffix = 1;
+            while ($spreadsheet->sheetNameExists($sheetName)) {
+                $maxLen = 31 - strlen(" ($suffix)");
+                $sheetName = substr($originalSheetName, 0, $maxLen) . " ($suffix)";
+                $suffix++;
+            }
+
+            if ($isFirst) {
+                $sheet = $spreadsheet->getActiveSheet();
+                $sheet->setTitle($sheetName);
+                $isFirst = false;
+            } else {
+                $sheet = new Worksheet($spreadsheet, $sheetName);
+            }
 
             // Get students from this class
             $students = User::where('role', 'student')
@@ -368,7 +381,12 @@ class ExcelExportController extends Controller
      */
     private function getAnswersForStudent($studentId, $tahapConfig)
     {
-        $answers = [];
+        $answers = [
+            'news_questions' => [],
+            'materi_questions' => [],
+            'preparation_questions' => [],
+            'reflections' => []
+        ];
 
         // Tahap 1 - News Answers
         $newsAnswers = DB::table('student_news_answers')
@@ -380,6 +398,9 @@ class ExcelExportController extends Controller
                 ->orderBy('order')
                 ->pluck('id');
             $allAnswers = is_array($ans->answers) ? $ans->answers : json_decode($ans->answers ?? '[]', true);
+            if (!is_array($allAnswers)) {
+                $allAnswers = [];
+            }
             foreach ($questionIds as $idx => $qId) {
                 $answers['news_questions'][$qId] = $allAnswers[$idx] ?? null;
             }
