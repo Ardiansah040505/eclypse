@@ -201,7 +201,7 @@ function openEcoPack(packId) {
   }
 
   // simpan state gacha
-  state._gacha = { cards, packId, idx: 0, isNew, isFirstOpen };
+  state._gacha = { cards, packId, idx: 0, isNew, isFirstOpen: isNew };
 
   const packsView = document.getElementById('ecoPacksView');
   const cardsView = document.getElementById('ecoCardsView');

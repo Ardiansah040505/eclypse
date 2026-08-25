@@ -53,50 +53,50 @@ class ExcelExportController extends Controller
         $spreadsheet->removeSheetByIndex(0);
 
         $tahapConfig = [
-            1 => [
+            'a' => [
                 'name' => 'Tahap 1 - Climate News',
                 'table' => 'student_news_answers',
                 'join_table' => 'learning_news',
                 'join_on' => 'news_id',
                 'join_select' => 'title as source_title',
                 'answer_field' => 'answers',
-                'prefix' => '1',
+                'prefix' => 'a',
                 'questions_table' => 'news_questions',
                 'questions_join' => 'news_id',
                 'questions_source' => 'news_id'
             ],
-            2 => [
+            'b' => [
                 'name' => 'Tahap 2 - Literasi',
                 'table' => 'materi_answers',
                 'join_table' => 'materi_questions',
                 'join_on' => 'question_id',
                 'join_select' => 'question_text as source_title',
                 'answer_field' => 'answer',
-                'prefix' => '2',
+                'prefix' => 'b',
                 'questions_table' => 'materi_questions',
                 'questions_join' => 'id',
                 'questions_source' => 'question_id'
             ],
-            3 => [
+            'c' => [
                 'name' => 'Tahap 3 - Pemantik',
                 'table' => 'preparation_answers',
                 'join_table' => 'preparation_questions',
                 'join_on' => 'question_id',
                 'join_select' => 'question_text as source_title',
                 'answer_field' => 'answer',
-                'prefix' => '3',
+                'prefix' => 'c',
                 'questions_table' => 'preparation_questions',
                 'questions_join' => 'id',
                 'questions_source' => 'question_id'
             ],
-            5 => [
+            'd' => [
                 'name' => 'Tahap 5 - Refleksi',
                 'table' => 'reflections',
                 'join_table' => null,
                 'join_on' => null,
                 'join_select' => 'question as source_title',
                 'answer_field' => 'answer',
-                'prefix' => '5',
+                'prefix' => 'd',
                 'questions_table' => null,
                 'questions_join' => null,
                 'questions_source' => null
@@ -122,17 +122,31 @@ class ExcelExportController extends Controller
 
             // Build dynamic columns based on available questions
             $columns = ['Nama', 'Absen'];
-            $questionMap = [];
+            $columnQuestions = [];
 
             // Get all available questions for each tahap
             foreach ($tahapConfig as $tahap => $config) {
                 $questions = $this->getQuestions($config);
+                $roleCounters = [];
                 foreach ($questions as $idx => $question) {
-                    $columnCode = $config['prefix'] . chr(97 + $idx); // 1a, 1b, 2a, etc
+                    $prefix = $config['prefix'];
+                    
+                    if ($config['questions_table'] == 'preparation_questions') {
+                        $role = $question['source']; // 'Universal', 'Peneliti', 'Aktivis', 'Pedagang'
+                        if (!isset($roleCounters[$role])) {
+                            $roleCounters[$role] = 0;
+                        }
+                        $roleIdx = $roleCounters[$role]++;
+                        $columnCode = 'soal ' . ($roleIdx + 1) . $prefix . ' (' . $role . ')';
+                    } else {
+                        $columnCode = 'soal ' . ($idx + 1) . $prefix;
+                    }
+                    
                     $columns[] = $columnCode;
-                    $questionMap[$question['id']] = [
-                        'column' => $columnCode,
-                        'tahap' => $tahap
+                    $columnQuestions[$columnCode] = [
+                        'tahap' => $tahap,
+                        'question_id' => $question['id'],
+                        'questions_table' => $config['questions_table']
                     ];
                 }
             }
@@ -203,7 +217,7 @@ class ExcelExportController extends Controller
                     $cell = $sheet->getCellByColumnAndRow($colIdx + 3, $rowIndex);
 
                     // Find answer for this column
-                    $answer = $this->findAnswerForColumn($colName, $answers, $tahapConfig);
+                    $answer = $this->findAnswerForColumn($colName, $answers, $columnQuestions);
                     $cell->setValue($answer ?? '');
 
                     // Apply wrap text for answer columns
@@ -393,37 +407,26 @@ class ExcelExportController extends Controller
     }
 
     /**
-     * Find answer for a specific column (e.g., '1a', '2b')
+     * Find answer for a specific column (e.g., 'aa', 'c_peneliti_a')
      */
-    private function findAnswerForColumn($column, $answers, $tahapConfig)
+    private function findAnswerForColumn($column, $answers, $columnQuestions)
     {
-        $prefix = substr($column, 0, 1);
-        $letter = substr($column, 1);
-
-        if (!isset($tahapConfig[$prefix])) {
+        if (!isset($columnQuestions[$column])) {
             return null;
         }
 
-        $config = $tahapConfig[$prefix];
-
-        // Get questions for this tahap
-        $questions = $this->getQuestions($config);
-        $questionIdx = ord($letter) - ord('a');
-
-        if (!isset($questions[$questionIdx])) {
-            return null;
-        }
-
-        $questionId = $questions[$questionIdx]['id'];
+        $colInfo = $columnQuestions[$column];
+        $questionId = $colInfo['question_id'];
+        $table = $colInfo['questions_table'];
 
         // Find answer
-        if ($config['questions_table'] == 'news_questions') {
+        if ($table == 'news_questions') {
             return $answers['news_questions'][$questionId] ?? null;
-        } elseif ($config['questions_table'] == 'materi_questions') {
+        } elseif ($table == 'materi_questions') {
             return $answers['materi_questions'][$questionId] ?? null;
-        } elseif ($config['questions_table'] == 'preparation_questions') {
+        } elseif ($table == 'preparation_questions') {
             return $answers['preparation_questions'][$questionId] ?? null;
-        } elseif ($config['questions_table'] == null) {
+        } elseif ($table == null) {
             // Reflections
             return $answers['reflections'][0] ?? null;
         }
