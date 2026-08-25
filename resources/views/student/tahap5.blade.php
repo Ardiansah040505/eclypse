@@ -111,8 +111,7 @@
           <div id="adminRecapSummary" style="font-size:0.85rem;color:var(--gray)">Memuat data...</div>
         </div>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-          <button class="btn-sm green" onclick="downloadRecapExcel()">📊 Download Excel</button>
-          <button class="btn-sm yellow" onclick="downloadRecapCSV()">⬇️ Download CSV</button>
+          <button class="btn-sm yellow" onclick="downloadRecapCSV()">⬇️ Download Data</button>
         </div>
       </div>
     </div>

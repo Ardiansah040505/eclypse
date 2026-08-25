@@ -195,36 +195,36 @@ class DownloadController extends Controller
      */
     private function generateCsv($date, $students)
     {
-        // Headers: Nama, NIS, Sekolah, Jawaban Berita,
-        // Pertanyaan Pemantik Universal, Jawaban Universal 1-5,
-        // Pertanyaan Pemantik Peneliti, Jawaban Peneliti 1-5,
-        // Pertanyaan Pemantik Aktivis, Jawaban Aktivis 1-5,
-        // Pertanyaan Pemantik Pedagang, Jawaban Pedagang 1-5,
-        // Pertanyaan Refleksi, Jawaban Refleksi
-        $headers = [
-            'No', 'Nama', 'NIS', 'Sekolah', 'Jawaban Berita',
-            'Pemantik Universal - Soal 1', 'Pemantik Universal - Jawaban 1',
-            'Pemantik Universal - Soal 2', 'Pemantik Universal - Jawaban 2',
-            'Pemantik Universal - Soal 3', 'Pemantik Universal - Jawaban 3',
-            'Pemantik Universal - Soal 4', 'Pemantik Universal - Jawaban 4',
-            'Pemantik Universal - Soal 5', 'Pemantik Universal - Jawaban 5',
-            'Pemantik Peneliti - Soal 1', 'Pemantik Peneliti - Jawaban 1',
-            'Pemantik Peneliti - Soal 2', 'Pemantik Peneliti - Jawaban 2',
-            'Pemantik Peneliti - Soal 3', 'Pemantik Peneliti - Jawaban 3',
-            'Pemantik Peneliti - Soal 4', 'Pemantik Peneliti - Jawaban 4',
-            'Pemantik Peneliti - Soal 5', 'Pemantik Peneliti - Jawaban 5',
-            'Pemantik Aktivis - Soal 1', 'Pemantik Aktivis - Jawaban 1',
-            'Pemantik Aktivis - Soal 2', 'Pemantik Aktivis - Jawaban 2',
-            'Pemantik Aktivis - Soal 3', 'Pemantik Aktivis - Jawaban 3',
-            'Pemantik Aktivis - Soal 4', 'Pemantik Aktivis - Jawaban 4',
-            'Pemantik Aktivis - Soal 5', 'Pemantik Aktivis - Jawaban 5',
-            'Pemantik Pedagang - Soal 1', 'Pemantik Pedagang - Jawaban 1',
-            'Pemantik Pedagang - Soal 2', 'Pemantik Pedagang - Jawaban 2',
-            'Pemantik Pedagang - Soal 3', 'Pemantik Pedagang - Jawaban 3',
-            'Pemantik Pedagang - Soal 4', 'Pemantik Pedagang - Jawaban 4',
-            'Pemantik Pedagang - Soal 5', 'Pemantik Pedagang - Jawaban 5',
-            'Pertanyaan Refleksi', 'Jawaban Refleksi'
-        ];
+        // Ambil jumlah soal aktif untuk setiap role dari database
+        $roleCounts = DB::table('preparation_questions')
+            ->select('role', DB::raw('MAX(`order`) as max_order'))
+            ->groupBy('role')
+            ->pluck('max_order', 'role')
+            ->toArray();
+
+        $maxUniversal = $roleCounts['all'] ?? 5;
+        $maxPeneliti = $roleCounts['peneliti'] ?? 5;
+        $maxAktivis = $roleCounts['aktivis'] ?? 5;
+        $maxPedagang = $roleCounts['pedagang'] ?? 5;
+
+        // Build headers dynamically
+        $headers = ['No', 'Nama', 'NIS', 'Sekolah', 'Jawaban Berita'];
+
+        for ($i = 1; $i <= $maxUniversal; $i++) {
+            $headers[] = 'a' . $i;
+        }
+        for ($i = 1; $i <= $maxPeneliti; $i++) {
+            $headers[] = 'b' . $i . ' (peneliti)';
+        }
+        for ($i = 1; $i <= $maxAktivis; $i++) {
+            $headers[] = 'b' . $i . ' (aktivis)';
+        }
+        for ($i = 1; $i <= $maxPedagang; $i++) {
+            $headers[] = 'b' . $i . ' (pedagang)';
+        }
+
+        $headers[] = 'Pertanyaan Refleksi';
+        $headers[] = 'Jawaban Refleksi';
 
         $lines = [];
         $lines[] = implode(',', $headers);
@@ -239,12 +239,17 @@ class DownloadController extends Controller
                 $this->escapeCsv(implode(' | ', $student['jawaban_berita'])),
             ];
 
-            // Add pemantik answers by role (Universal, Peneliti, Aktivis, Pedagang)
-            foreach (['all', 'peneliti', 'aktivis', 'pedagang'] as $role) {
+            // Add pemantik answers dynamically by role
+            $roleConfigs = [
+                'all' => $maxUniversal,
+                'peneliti' => $maxPeneliti,
+                'aktivis' => $maxAktivis,
+                'pedagang' => $maxPedagang
+            ];
+
+            foreach ($roleConfigs as $role => $maxCount) {
                 $roleAnswers = $student['jawaban_pemantik'][$role] ?? [];
-                $roleQuestions = $student['pertanyaan_pemantik'][$role] ?? [];
-                for ($i = 1; $i <= 5; $i++) {
-                    $row[] = $this->escapeCsv($roleQuestions[$i] ?? '');
+                for ($i = 1; $i <= $maxCount; $i++) {
                     $row[] = $this->escapeCsv($roleAnswers[$i] ?? '');
                 }
             }
