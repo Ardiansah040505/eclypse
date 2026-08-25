@@ -87,15 +87,15 @@ class ExcelExportController extends Controller
             ],
             'd' => [
                 'name' => 'Tahap 5 - Refleksi',
-                'table' => 'reflections',
-                'join_table' => null,
-                'join_on' => null,
-                'join_select' => 'question as source_title',
+                'table' => 'refleksi_answers',
+                'join_table' => 'refleksi_questions',
+                'join_on' => 'question_id',
+                'join_select' => 'question_text as source_title',
                 'answer_field' => 'answer',
                 'prefix' => 'd',
-                'questions_table' => null,
-                'questions_join' => null,
-                'questions_source' => null
+                'questions_table' => 'refleksi_questions',
+                'questions_join' => 'id',
+                'questions_source' => 'question_id'
             ]
         ];
 
@@ -150,7 +150,7 @@ class ExcelExportController extends Controller
                 foreach ($questions as $idx => $question) {
                     $prefix = $config['prefix'];
                     
-                    if ($config['questions_table'] == 'preparation_questions') {
+                    if ($config['questions_table'] == 'preparation_questions' || $config['questions_table'] == 'refleksi_questions') {
                         $role = $question['source']; // 'Universal', 'Peneliti', 'Aktivis', 'Pedagang'
                         if (!isset($roleCounters[$role])) {
                             $roleCounters[$role] = 0;
@@ -165,16 +165,34 @@ class ExcelExportController extends Controller
                     $columnQuestions[$columnCode] = [
                         'tahap' => $tahap,
                         'question_id' => $question['id'],
-                        'questions_table' => $config['questions_table']
+                        'questions_table' => $config['questions_table'],
+                        'role' => $question['source'] ?? null
                     ];
                 }
             }
+
+            // Define role header colors (pastel/distinguishable colors)
+            $roleColors = [
+                'Universal' => '457B9D', // Steel Blue
+                'Peneliti' => '1D3557',  // Dark Navy
+                'Aktivis' => 'E63946',   // Crimson Red
+                'Pedagang' => 'D68C45',  // Ochre/Amber
+            ];
 
             // Set column headers
             $colIndex = 1;
             foreach ($columns as $colName) {
                 $cell = $sheet->getCell([$colIndex, 1]);
                 $cell->setValue($colName);
+
+                // Determine header color
+                $bgColor = '1B4332'; // Default forest green for Nama, Absen, news, materi
+                if (isset($columnQuestions[$colName]['role'])) {
+                    $role = $columnQuestions[$colName]['role'];
+                    if (isset($roleColors[$role])) {
+                        $bgColor = $roleColors[$role];
+                    }
+                }
 
                 // Header styling
                 $cell->getStyle()
@@ -185,7 +203,7 @@ class ExcelExportController extends Controller
                         ],
                         'fill' => [
                             'fillType' => Fill::FILL_SOLID,
-                            'startColor' => ['rgb' => '1B4332']
+                            'startColor' => ['rgb' => $bgColor]
                         ],
                         'alignment' => [
                             'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -194,7 +212,7 @@ class ExcelExportController extends Controller
                         'borders' => [
                             'allBorders' => [
                                 'borderStyle' => Border::BORDER_THIN,
-                                'color' => ['rgb' => '2D6A4F']
+                                'color' => ['rgb' => 'FFFFFF']
                             ]
                         ]
                     ]);
@@ -368,9 +386,22 @@ class ExcelExportController extends Controller
                     ];
                 }
             }
-        } elseif ($config['questions_table'] == null) {
-            // Reflections - questions are from student's own input
-            // We'll just return the reflection records themselves
+        } elseif ($config['questions_table'] == 'refleksi_questions') {
+            // Refleksi questions - grouped by role
+            $roles = ['all', 'peneliti', 'aktivis', 'pedagang'];
+            foreach ($roles as $role) {
+                $rQuestions = DB::table('refleksi_questions')
+                    ->where('role', $role)
+                    ->orderBy('order')
+                    ->get();
+                foreach ($rQuestions as $q) {
+                    $questions[] = [
+                        'id' => $q->id,
+                        'text' => $q->question_text,
+                        'source' => $role == 'all' ? 'Universal' : ucfirst($role)
+                    ];
+                }
+            }
         }
 
         return $questions;
@@ -385,7 +416,7 @@ class ExcelExportController extends Controller
             'news_questions' => [],
             'materi_questions' => [],
             'preparation_questions' => [],
-            'reflections' => []
+            'refleksi_questions' => []
         ];
 
         // Tahap 1 - News Answers
@@ -422,12 +453,12 @@ class ExcelExportController extends Controller
             $answers['preparation_questions'][$ans->question_id] = $ans->answer;
         }
 
-        // Tahap 5 - Reflections
-        $reflections = DB::table('reflections')
-            ->where('user_id', $studentId)
+        // Tahap 5 - Refleksi Answers
+        $refleksiAnswers = DB::table('refleksi_answers')
+            ->where('student_id', $studentId)
             ->get();
-        foreach ($reflections as $ref) {
-            $answers['reflections'][] = $ref->answer;
+        foreach ($refleksiAnswers as $ans) {
+            $answers['refleksi_questions'][$ans->question_id] = $ans->answer;
         }
 
         return $answers;
@@ -453,9 +484,8 @@ class ExcelExportController extends Controller
             return $answers['materi_questions'][$questionId] ?? null;
         } elseif ($table == 'preparation_questions') {
             return $answers['preparation_questions'][$questionId] ?? null;
-        } elseif ($table == null) {
-            // Reflections
-            return $answers['reflections'][0] ?? null;
+        } elseif ($table == 'refleksi_questions') {
+            return $answers['refleksi_questions'][$questionId] ?? null;
         }
 
         return null;
