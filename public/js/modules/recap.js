@@ -303,7 +303,7 @@ function downloadRecapExcel() {
       'Accept': 'application/json'
     }
   })
-  .then(res => {
+  .then(async res => {
     if (!res.ok) {
       if (res.status === 401) {
         showToast('⚠️ Silakan login sebagai Admin terlebih dahulu');
@@ -312,6 +312,15 @@ function downloadRecapExcel() {
       }
       throw new Error('Excel export failed');
     }
+    
+    // Check if the response is JSON (error message) instead of file blob
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const data = await res.json();
+      showToast('⚠️ ' + (data.message || 'Gagal membuat Excel'));
+      throw new Error(data.message || 'Excel export failed');
+    }
+    
     return res.blob();
   })
   .then(blob => {
@@ -327,7 +336,6 @@ function downloadRecapExcel() {
   })
   .catch(err => {
     console.error('Excel export error:', err);
-    showToast('⚠️ Gagal membuat Excel');
   });
 }
 

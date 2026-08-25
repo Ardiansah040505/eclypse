@@ -24,24 +24,24 @@ class ExcelExportController extends Controller
         // Group by: sekolah + kelas
         $classes = User::where('role', 'student')
             ->whereNotNull('school')
-            ->whereNotNull('kelas')
             ->select('school', 'kelas')
             ->distinct()
             ->orderBy('school')
             ->orderBy('kelas')
             ->get()
             ->map(function ($item) {
+                $kelasName = $item->kelas ?? 'Tanpa Kelas';
                 return [
                     'school' => $item->school,
-                    'kelas' => $item->kelas,
-                    'key' => $item->school . '|' . $item->kelas
+                    'kelas' => $kelasName,
+                    'key' => $item->school . '|' . $kelasName
                 ];
             });
 
         if ($classes->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Belum ada data siswa dengan kelas'
+                'message' => 'Belum ada data siswa'
             ]);
         }
 
@@ -115,7 +115,13 @@ class ExcelExportController extends Controller
             // Get students from this class
             $students = User::where('role', 'student')
                 ->where('school', $school)
-                ->where('kelas', $kelas)
+                ->where(function ($query) use ($kelas) {
+                    if ($kelas === 'Tanpa Kelas') {
+                        $query->whereNull('kelas')->orWhere('kelas', '');
+                    } else {
+                        $query->where('kelas', $kelas);
+                    }
+                })
                 ->orderBy('absen')
                 ->orderBy('name')
                 ->get();

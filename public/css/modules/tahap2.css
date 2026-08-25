@@ -247,6 +247,7 @@
   padding: 2rem;
   box-sizing: border-box;
 }
+.gacha-face-front { transform: rotateY(0deg); }
 .gacha-face-back { transform: rotateY(180deg); }
 .gacha-flip-hint {
   margin-top: 1.5rem;
