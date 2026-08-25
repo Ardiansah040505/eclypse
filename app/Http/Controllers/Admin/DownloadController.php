@@ -10,15 +10,15 @@ use ZipArchive;
 class DownloadController extends Controller
 {
     /**
-     * Download all recap data as ZIP with CSV files per day
+     * Download all recap data as ZIP with CSV files grouped by school, date, and class
      */
     public function allCsv()
     {
         // Collect all data from different tables
         $data = $this->collectAllData();
 
-        // Group by date
-        $grouped = $this->groupByDate($data);
+        // Group by school, date, and class
+        $grouped = $this->groupBySchoolDateClass($data);
 
         if (empty($grouped)) {
             return response()->json([
@@ -39,14 +39,27 @@ class DownloadController extends Controller
             ]);
         }
 
-        // Create CSV for each date
-        foreach ($grouped as $date => $students) {
-            $csv = $this->generateCsv($date, $students);
-            $zip->addFromString($date . '.csv', "\xEF\xBB\xBF" . $csv);
+        $totalFiles = 0;
+        foreach ($grouped as $school => $dates) {
+            $cleanSchool = $this->cleanPathName($school) ?: 'Tanpa Sekolah';
+            foreach ($dates as $date => $classes) {
+                $cleanDate = $this->cleanPathName($date) ?: date('Y-m-d');
+                foreach ($classes as $kelas => $students) {
+                    $cleanKelas = $this->cleanPathName($kelas) ?: 'Tanpa Kelas';
+                    
+                    $csv = $this->generateCsv($date, $students);
+                    
+                    // Path inside ZIP: [Sekolah]/[Tanggal]/[Kelas].csv
+                    $zipPath = $cleanSchool . '/' . $cleanDate . '/' . $cleanKelas . '.csv';
+                    
+                    $zip->addFromString($zipPath, "\xEF\xBB\xBF" . $csv);
+                    $totalFiles++;
+                }
+            }
         }
 
         // Add README file
-        $readme = $this->generateReadme(count($grouped));
+        $readme = $this->generateReadme($totalFiles);
         $zip->addFromString('README.txt', $readme);
 
         $zip->close();
@@ -72,6 +85,7 @@ class DownloadController extends Controller
                 'u.name as nama',
                 'u.nis',
                 'u.school as sekolah',
+                'u.kelas as kelas',
                 'sna.answers',
                 'ln.title as berita_judul',
                 'sna.created_at'
@@ -96,6 +110,7 @@ class DownloadController extends Controller
                 'u.name as nama',
                 'u.nis',
                 'u.school as sekolah',
+                'u.kelas as kelas',
                 'ma.answer',
                 'mq.order as soal_order',
                 'lm.title as materi_judul',
@@ -124,6 +139,7 @@ class DownloadController extends Controller
                 'u.name as nama',
                 'u.nis',
                 'u.school as sekolah',
+                'u.kelas as kelas',
                 'pa.answer',
                 'pq.order as soal_order',
                 'pq.role as soal_role',
@@ -157,6 +173,7 @@ class DownloadController extends Controller
                 'u.name as nama',
                 'u.nis',
                 'u.school as sekolah',
+                'u.kelas as kelas',
                 'ra.answer',
                 'rq.order as soal_order',
                 'rq.role as soal_role',
@@ -185,6 +202,7 @@ class DownloadController extends Controller
                 'u.name as nama',
                 'u.nis',
                 'u.school as sekolah',
+                'u.kelas as kelas',
                 'r.question as pertanyaan',
                 'r.answer as jawaban',
                 'admin.name as dijawab_oleh',
@@ -218,6 +236,7 @@ class DownloadController extends Controller
             'nama' => $row->nama,
             'nis' => $row->nis ?? '',
             'sekolah' => $row->sekolah ?? '',
+            'kelas' => $row->kelas ?? '',
             'date' => substr($row->created_at ?? date('Y-m-d H:i:s'), 0, 10),
             'jawaban_berita' => [],
             'jawaban_materi' => [],
@@ -230,23 +249,42 @@ class DownloadController extends Controller
     }
 
     /**
-     * Group data by date
+     * Group data by school, date, and class
      */
-    private function groupByDate($data)
+    private function groupBySchoolDateClass($data)
     {
         $grouped = [];
 
         foreach ($data as $row) {
+            $school = trim($row['sekolah']) !== '' ? $row['sekolah'] : 'Tanpa Sekolah';
             $date = $row['date'];
-            if (!isset($grouped[$date])) {
-                $grouped[$date] = [];
+            $kelas = trim($row['kelas']) !== '' ? $row['kelas'] : 'Tanpa Kelas';
+
+            if (!isset($grouped[$school])) {
+                $grouped[$school] = [];
             }
+            if (!isset($grouped[$school][$date])) {
+                $grouped[$school][$date] = [];
+            }
+            if (!isset($grouped[$school][$date][$kelas])) {
+                $grouped[$school][$date][$kelas] = [];
+            }
+
             // Use student_id + date as key to avoid duplicates
             $key = $row['student_id'] . '_' . $row['nama'];
-            $grouped[$date][$key] = $row;
+            $grouped[$school][$date][$kelas][$key] = $row;
         }
 
         return $grouped;
+    }
+
+    /**
+     * Clean names for files and folders
+     */
+    private function cleanPathName($name)
+    {
+        $name = preg_replace('/[\\/*?:"<>|]/', '', $name);
+        return trim($name);
     }
 
     /**
@@ -288,7 +326,7 @@ class DownloadController extends Controller
         $maxRefPedagang = $refleksiCounts['pedagang'] ?? 5;
 
         // Build headers dynamically
-        $headers = ['No', 'Nama', 'NIS', 'Sekolah', 'Jawaban Berita'];
+        $headers = ['No', 'Nama', 'NIS', 'Sekolah', 'Kelas', 'Jawaban Berita'];
 
         // Add materi headers
         foreach ($materiConfigs as $materiTitle => $maxCount) {
@@ -338,6 +376,7 @@ class DownloadController extends Controller
                 $this->escapeCsv($student['nama']),
                 $this->escapeCsv($student['nis']),
                 $this->escapeCsv($student['sekolah']),
+                $this->escapeCsv($student['kelas']),
                 $this->escapeCsv(implode(' | ', $student['jawaban_berita'])),
             ];
 
@@ -411,52 +450,40 @@ class DownloadController extends Controller
     private function generateReadme($count)
     {
         $readme = <<<EOT
-REKAP DATA ECLYPSE
-==================
+REKAP DATA ECLYPSE (FORMAT CSV)
+==============================
 
 File ini berisi data jawaban siswa dari platform pembelajaran iklim ECLYPSE.
 
-STRUKTUR FILE:
-- Tiap file CSV berisi data siswa per tanggal pembelajaran
-- Nama file CSV = tanggal pembelajaran (format: YYYY-MM-DD.csv)
+STRUKTUR FILE & FOLDER DI DALAM ZIP:
+- Folder Utama : Nama Sekolah (Contoh: "SMAN 1")
+- Sub-folder   : Tanggal Pembelajaran (Format: "YYYY-MM-DD")
+- File CSV     : Nama Kelas (Contoh: "Kelas 10.csv")
+
+Jadi, jalurnya adalah: [Nama Sekolah]/[Tanggal Pembelajaran]/[Nama Kelas].csv
 
 KOLOM CSV:
 1. No                     - Nomor urut
 2. Nama                   - Nama lengkap siswa
 3. NIS                    - Nomor Induk Siswa
 4. Sekolah                - Nama sekolah
-5. Jawaban Berita         - Jawaban siswa dari Tahap 1 (Climate News)
+5. Kelas                  - Nama kelas siswa
+6. Jawaban Berita         - Jawaban siswa dari Tahap 1 (Climate News)
 
 PEMANTIK UNIVERSAL (Semua siswa):
-6-7.  Pemantik Universal - Soal 1, Jawaban 1
-8-9.  Pemantik Universal - Soal 2, Jawaban 2
-10-11. Pemantik Universal - Soal 3, Jawaban 3
-12-13. Pemantik Universal - Soal 4, Jawaban 4
-14-15. Pemantik Universal - Soal 5, Jawaban 5
+7-11. Pemantik Universal - Soal 1 s/d 5
 
 PEMANTIK PENELITI (Siswa pilih Paket Peneliti):
-16-17. Pemantik Peneliti - Soal 1, Jawaban 1
-18-19. Pemantik Peneliti - Soal 2, Jawaban 2
-20-21. Pemantik Peneliti - Soal 3, Jawaban 3
-22-23. Pemantik Peneliti - Soal 4, Jawaban 4
-24-25. Pemantik Peneliti - Soal 5, Jawaban 5
+12-16. Pemantik Peneliti - Soal 1 s/d 5
 
 PEMANTIK AKTIVIS (Siswa pilih Paket Aktivis):
-26-27. Pemantik Aktivis - Soal 1, Jawaban 1
-28-29. Pemantik Aktivis - Soal 2, Jawaban 2
-30-31. Pemantik Aktivis - Soal 3, Jawaban 3
-32-33. Pemantik Aktivis - Soal 4, Jawaban 4
-34-35. Pemantik Aktivis - Soal 5, Jawaban 5
+17-21. Pemantik Aktivis - Soal 1 s/d 5
 
 PEMANTIK PEDAGANG (Siswa pilih Paket Pedagang):
-36-37. Pemantik Pedagang - Soal 1, Jawaban 1
-38-39. Pemantik Pedagang - Soal 2, Jawaban 2
-40-41. Pemantik Pedagang - Soal 3, Jawaban 3
-42-43. Pemantik Pedagang - Soal 4, Jawaban 4
-44-45. Pemantik Pedagang - Soal 5, Jawaban 5
+22-26. Pemantik Pedagang - Soal 1 s/d 5
 
-46. Pertanyaan Refleksi   - Pertanyaan siswa di Tahap 5
-47. Jawaban Refleksi      - Jawaban dari guru/admin
+27. Pertanyaan Refleksi   - Pertanyaan siswa di Tahap 5
+28. Jawaban Refleksi      - Jawaban dari guru/admin
 
 TANGGAL DOWNLOAD: {date}
 JUMLAH FILE CSV: {count} file
